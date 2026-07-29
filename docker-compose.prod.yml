@@ -1,0 +1,38 @@
+services:
+  # ─── Certbot / Let's Encrypt ──────────────────────────────────────────────────
+  certbot:
+    image: certbot/certbot:latest
+    container_name: endurancenet-certbot
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    entrypoint: >
+      /bin/sh -c '
+        trap exit TERM;
+        while :; do
+          certbot renew --webroot -w /var/www/certbot --quiet;
+          sleep 12h & wait $${!};
+        done
+      '
+    networks:
+      - external
+
+  # ─── Nginx Reverse Proxy (HTTPS production) ───────────────────────────────────
+  nginx:
+    volumes:
+      - letsencrypt:/etc/letsencrypt:ro
+      - certbot-www:/var/www/certbot
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN env var required for production}
+
+  # ─── Backend production overrides ────────────────────────────────────────────
+  backend:
+    environment:
+      APPLICATION_SECRET: ${APPLICATION_SECRET:?APPLICATION_SECRET env var required for production}
+
+volumes:
+  letsencrypt:
+  certbot-www:
