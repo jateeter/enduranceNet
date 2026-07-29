@@ -33,3 +33,7 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Migration crawler outputs
+migration/inventory/*
+!migration/inventory/.gitkeep
