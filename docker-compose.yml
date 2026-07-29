@@ -1,4 +1,23 @@
 services:
+  # ─── Postgres content store ──────────────────────────────────────────────────
+  postgres:
+    image: postgres:17-alpine
+    container_name: endurancenet-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-endurancenet}
+      POSTGRES_USER: ${POSTGRES_USER:-endurancenet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-endurancenet_dev_password}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   # ─── Scala Play Framework REST API ───────────────────────────────────────────
   backend:
     build:
@@ -8,11 +27,19 @@ services:
     restart: unless-stopped
     environment:
       APPLICATION_SECRET: ${APPLICATION_SECRET:-changeme_replace_in_production_min32chars}
+      SLICK_PROFILE: slick.jdbc.PostgresProfile$
+      DB_DRIVER: org.postgresql.Driver
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-endurancenet}
+      DB_USER: ${POSTGRES_USER:-endurancenet}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-endurancenet_dev_password}
       JAVA_OPTS: "-Xmx512m -Xms256m -Dplay.http.secret.key=${APPLICATION_SECRET:-changeme_replace_in_production_min32chars}"
     expose:
       - "9000"
     networks:
       - internal
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/api/health"]
       interval: 30s
@@ -32,7 +59,8 @@ services:
     networks:
       - internal
     depends_on:
-      - backend
+      backend:
+        condition: service_started
 
   # ─── Nginx Reverse Proxy (HTTP only – dev/local) ──────────────────────────────
   nginx:
@@ -49,8 +77,10 @@ services:
       - internal
       - external
     depends_on:
-      - frontend
-      - backend
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_started
 
 networks:
   internal:
@@ -58,3 +88,6 @@ networks:
     internal: true
   external:
     driver: bridge
+
+volumes:
+  postgres-data:
