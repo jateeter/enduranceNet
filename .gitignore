@@ -4,3 +4,32 @@
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
+
+# Node / npm
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Environment secrets – NEVER commit
+.env
+*.env.local
+
+# SBT build artifacts
+backend/target/
+backend/project/target/
+backend/project/project/
+
+# TLS / Let's Encrypt certificates
+nginx/ssl/
+letsencrypt/
+nginx/certbot-www/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Editor artifacts
+.idea/
+.vscode/
+*.swp
+*.swo

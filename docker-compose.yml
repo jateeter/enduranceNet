@@ -1,0 +1,60 @@
+services:
+  # ─── Scala Play Framework REST API ───────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: endurancenet-backend
+    restart: unless-stopped
+    environment:
+      APPLICATION_SECRET: ${APPLICATION_SECRET:-changeme_replace_in_production_min32chars}
+      JAVA_OPTS: "-Xmx512m -Xms256m -Dplay.http.secret.key=${APPLICATION_SECRET:-changeme_replace_in_production_min32chars}"
+    expose:
+      - "9000"
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ─── React TypeScript SPA ─────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: endurancenet-frontend
+    restart: unless-stopped
+    expose:
+      - "80"
+    networks:
+      - internal
+    depends_on:
+      - backend
+
+  # ─── Nginx Reverse Proxy (HTTP only – dev/local) ──────────────────────────────
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: endurancenet-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    networks:
+      - internal
+      - external
+    depends_on:
+      - frontend
+      - backend
+
+networks:
+  internal:
+    driver: bridge
+    internal: true
+  external:
+    driver: bridge
