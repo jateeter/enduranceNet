@@ -13,7 +13,7 @@ class ApiControllerSpec extends PlaySpec with GuiceOneAppPerTest with Injecting 
       val result = controller.health().apply(FakeRequest(GET, "/api/health"))
       status(result) mustBe OK
       contentType(result) mustBe Some("application/json")
-      (contentAsJson(result) \\ "status").as[String] mustBe "healthy"
+      (contentAsJson(result) \ "status").as[String] mustBe "healthy"
     }
   }
 }

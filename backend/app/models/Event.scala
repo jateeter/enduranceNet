@@ -17,17 +17,17 @@ object Event {
   implicit val format: OFormat[Event] = Json.format[Event]
 
   val sampleEvents: List[Event] = List(
-    Event(1, "Western States 100", "Ultra Running", "2025-06-28", "Squaw Valley, CA", "100 miles",
-      "The world's oldest 100-mile trail running race through the Sierra Nevada mountains.", Some("https://www.wser.org")),
-    Event(2, "IRONMAN World Championship", "Triathlon", "2025-10-11", "Kailua-Kona, HI", "140.6 miles",
-      "The pinnacle of endurance sport - 2.4 mile swim, 112 mile bike, 26.2 mile run.", Some("https://www.ironman.com")),
-    Event(3, "Tour de France", "Cycling", "2025-07-05", "Various, France", "3,400 km",
-      "The most prestigious cycling race in the world spanning 21 stages.", None),
-    Event(4, "Boston Marathon", "Running", "2026-04-20", "Boston, MA", "26.2 miles",
-      "The world's oldest annual marathon and one of the six World Marathon Majors.", Some("https://www.baa.org")),
-    Event(5, "Leadville Trail 100 Run", "Ultra Running", "2025-08-16", "Leadville, CO", "100 miles",
-      "Race across the sky - high altitude ultramarathon at elevations above 10,000 feet.", Some("https://www.leadvilleraceseries.com")),
-    Event(6, "IRONMAN 70.3 World Championship", "Triathlon", "2025-09-05", "Taupo, New Zealand", "70.3 miles",
-      "Half IRONMAN world championship featuring top age group and professional athletes.", Some("https://www.ironman.com"))
+    Event(1, "Tevis Cup", "Endurance Ride", "2026-07-18", "California, USA", "100 miles",
+      "Western States Trail Ride coverage with legacy event pages, photos, news anchors, and archive material.", Some("/international/USA/2026TevisCup/")),
+    Event(2, "City of Rocks Pioneer", "Endurance Ride", "2026-06-01", "Idaho, USA", "25/50/55 miles",
+      "Recurring Idaho endurance ride represented in the legacy tree by yearly microsites, stories, and galleries.", Some("/international/USA/2026CityOfRocks/")),
+    Event(3, "Mongol Derby", "Expedition Endurance", "2026-08-01", "Mongolia", "1000 km",
+      "International endurance adventure coverage with news, rider stories, and event archive pages.", Some("/international/Mongolia/2026MongolDerby/")),
+    Event(4, "Tom Quilty Gold Cup", "Endurance Championship", "2026-07-01", "Australia", "160 km",
+      "Australian championship coverage represented by event pages, news references, and historical archive entries.", Some("/international/Australia/2026TomQuilty/")),
+    Event(5, "FEI Endurance World Championship", "Championship", "2026-11-01", "AlUla, Saudi Arabia", "160 km",
+      "World championship coverage hub with team analyses, qualification explainers, and related Current News entries.", Some("/international/SaudiArabia/2026WorldEnduranceChampionship/")),
+    Event(6, "Owyhee Endurance Rides", "Endurance Ride Series", "2026-10-01", "Idaho, USA", "Multiple distances",
+      "Local ride-series content connected to advertiser pages, event archives, and gallery media.", Some("/oreana/owyheeendurancerides.html"))
   )
 }
