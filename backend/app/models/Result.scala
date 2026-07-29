@@ -17,13 +17,11 @@ object Result {
   implicit val format: OFormat[Result] = Json.format[Result]
 
   val sampleResults: List[Result] = List(
-    Result(1, 1, "Western States 100", "Courtney Dauwalter", "14:53:09", 1, "Female Overall", 2025),
-    Result(2, 1, "Western States 100", "Jim Walmsley", "14:46:27", 1, "Male Overall", 2025),
-    Result(3, 2, "IRONMAN World Championship", "Kristian Blummenfelt", "7:27:53", 1, "Male Pro", 2024),
-    Result(4, 2, "IRONMAN World Championship", "Chelsea Sodaro", "8:33:46", 1, "Female Pro", 2024),
-    Result(5, 3, "Tour de France", "Jonas Vingegaard", "82:49:45", 1, "General Classification", 2025),
-    Result(6, 4, "Boston Marathon", "Sisay Lemma", "2:06:17", 1, "Male Overall", 2025),
-    Result(7, 4, "Boston Marathon", "Hellen Obiri", "2:20:54", 1, "Female Overall", 2025),
-    Result(8, 5, "Leadville Trail 100 Run", "Dylan Bowman", "16:01:42", 1, "Male Overall", 2025)
+    Result(1, 1, "Tevis Cup", "Legacy results import pending", "TBD", 1, "100 Mile", 2026),
+    Result(2, 2, "City of Rocks Pioneer", "Legacy results import pending", "TBD", 1, "50 Mile", 2026),
+    Result(3, 3, "Mongol Derby", "Legacy results import pending", "TBD", 1, "Expedition", 2026),
+    Result(4, 4, "Tom Quilty Gold Cup", "Legacy results import pending", "TBD", 1, "160 km", 2026),
+    Result(5, 5, "FEI Endurance World Championship", "Legacy results import pending", "TBD", 1, "Championship", 2026),
+    Result(6, 6, "Owyhee Endurance Rides", "Legacy results import pending", "TBD", 1, "Ride Series", 2026)
   )
 }
