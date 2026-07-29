@@ -37,3 +37,5 @@ Thumbs.db
 # Migration crawler outputs
 migration/inventory/*
 !migration/inventory/.gitkeep
+migration/coverage/*
+!migration/coverage/.gitkeep
