@@ -3,7 +3,7 @@ import { fetchResults } from '../api/endpoints';
 import LegacySectionHeader from '../components/LegacySectionHeader';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
-import { BadgeDollarSign, Clock, Medal, Trophy } from 'lucide-react';
+import { Clock, Medal, Trophy } from 'lucide-react';
 
 export default function ResultsPage() {
   const { data: results, loading, error } = useApi(fetchResults);
@@ -19,10 +19,10 @@ export default function ResultsPage() {
   return (
     <div className="page">
       <LegacySectionHeader
-        title="Classifieds"
-        subtitle="Migration staging for legacy horses, tack, trailers, jobs, and other marketplace listings."
-        banner="/images/banner_sm_right_classified.jpg"
-        icon={<BadgeDollarSign size={28} />}
+        title="Results Archive"
+        subtitle="Migration staging for event results, completion records, categories, and historical ride standings."
+        banner="/images/banner_sm_right_events.jpg"
+        icon={<Trophy size={28} />}
       />
 
       {loading && <LoadingSpinner />}
