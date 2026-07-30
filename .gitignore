@@ -39,3 +39,5 @@ migration/inventory/*
 !migration/inventory/.gitkeep
 migration/coverage/*
 !migration/coverage/.gitkeep
+migration/imports/*
+!migration/imports/.gitkeep
