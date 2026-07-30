@@ -86,4 +86,7 @@ class ContentRepository @Inject()(databaseConfigProvider: DatabaseConfigProvider
 
   def listLegacyRedirects(): Future[Seq[LegacyRedirect]] =
     db.run(legacyRedirects.sortBy(redirect => (redirect.legacyUrl.asc, redirect.id.asc)).result)
+
+  def resolveLegacyRedirect(legacyUrl: String): Future[Option[LegacyRedirect]] =
+    db.run(legacyRedirects.filter(_.legacyUrl === legacyUrl).result.headOption)
 }
