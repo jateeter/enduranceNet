@@ -24,11 +24,12 @@ from typing import Iterable
 
 PARSER_VERSION = "legacy-import-v1"
 MAX_TEXT_BYTES = 512 * 1024
+MAX_DOMAIN_TEXT_BYTES = 64 * 1024
 MEDIA_EXTENSIONS = {
     ".jpg", ".jpeg", ".jpe", ".png", ".gif", ".webp", ".svg", ".ico",
     ".mp3", ".wav", ".mov", ".mp4", ".m4v", ".avi", ".psd",
 }
-FEED_EXTENSIONS = {".xml", ".rss", ".atom"}
+FEED_EXTENSIONS = {".xml", ".rss", ".atom", ".opml", ".xsl", ".xslt"}
 CONTENT_FRAGMENT_NAMES = {"indexinternal.html", "index_content.html", "newsitems.html"}
 
 
@@ -85,10 +86,14 @@ def one(conn: sqlite3.Connection, sql: str, params: Iterable[object] = ()) -> ob
 
 
 def read_text(path: Path) -> str:
+    return read_text_limited(path, MAX_TEXT_BYTES)
+
+
+def read_text_limited(path: Path, max_bytes: int) -> str:
     with path.open("rb") as handle:
-        data = handle.read(MAX_TEXT_BYTES + 1)
-    if len(data) > MAX_TEXT_BYTES:
-        data = data[:MAX_TEXT_BYTES]
+        data = handle.read(max_bytes + 1)
+    if len(data) > max_bytes:
+        data = data[:max_bytes]
     return data.decode("utf-8", errors="replace")
 
 
@@ -212,6 +217,18 @@ def init_db(config: ImportConfig) -> sqlite3.Connection:
           PRIMARY KEY (source_path, entry_index)
         );
 
+        CREATE TABLE IF NOT EXISTS structured_data_files (
+          source_path TEXT PRIMARY KEY,
+          legacy_url TEXT NOT NULL,
+          content_domain TEXT NOT NULL,
+          format TEXT NOT NULL,
+          root_tag TEXT,
+          item_count INTEGER NOT NULL,
+          checksum_sha256 TEXT,
+          import_batch_id TEXT NOT NULL,
+          parser_version TEXT NOT NULL
+        );
+
         CREATE TABLE IF NOT EXISTS media_references (
           source_path TEXT NOT NULL,
           referenced_url TEXT NOT NULL,
@@ -221,13 +238,67 @@ def init_db(config: ImportConfig) -> sqlite3.Connection:
           parser_version TEXT NOT NULL,
           PRIMARY KEY (source_path, referenced_url, attribute)
         );
+
+        CREATE TABLE IF NOT EXISTS gallery_manifests (
+          source_path TEXT PRIMARY KEY,
+          legacy_url TEXT NOT NULL,
+          title TEXT,
+          media_reference_count INTEGER NOT NULL,
+          checksum_sha256 TEXT,
+          import_batch_id TEXT NOT NULL,
+          parser_version TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS advertiser_records (
+          source_path TEXT PRIMARY KEY,
+          legacy_url TEXT NOT NULL,
+          name TEXT NOT NULL,
+          website_url TEXT,
+          body_html TEXT,
+          body_truncated INTEGER NOT NULL,
+          logo_reference_count INTEGER NOT NULL,
+          checksum_sha256 TEXT,
+          import_batch_id TEXT NOT NULL,
+          parser_version TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS classified_records (
+          source_path TEXT PRIMARY KEY,
+          legacy_url TEXT NOT NULL,
+          category TEXT NOT NULL,
+          title TEXT NOT NULL,
+          body_html TEXT,
+          body_truncated INTEGER NOT NULL,
+          media_reference_count INTEGER NOT NULL,
+          checksum_sha256 TEXT,
+          import_batch_id TEXT NOT NULL,
+          parser_version TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS ridecamp_messages (
+          source_path TEXT PRIMARY KEY,
+          legacy_url TEXT NOT NULL,
+          subject TEXT NOT NULL,
+          author_display TEXT,
+          posted_at TEXT,
+          body_html TEXT,
+          body_truncated INTEGER NOT NULL,
+          previous_by_date_url TEXT,
+          next_by_date_url TEXT,
+          previous_by_thread_url TEXT,
+          next_by_thread_url TEXT,
+          checksum_sha256 TEXT,
+          import_batch_id TEXT NOT NULL,
+          parser_version TEXT NOT NULL
+        );
         """
     )
     return conn
 
 
 def start_batch(conn: sqlite3.Connection, config: ImportConfig) -> str:
-    batch_id = f"{PARSER_VERSION}-{utc_now()}"
+    precise_stamp = datetime.now(timezone.utc).isoformat(timespec="microseconds")
+    batch_id = f"{PARSER_VERSION}-{precise_stamp}"
     conn.execute(
         """
         INSERT INTO import_batches (id, parser_version, inventory_db, source_root, started_at)
@@ -448,15 +519,35 @@ def link_of(element: ET.Element) -> str:
     return ""
 
 
+def local_name(tag: str) -> str:
+    return tag.rsplit("}", 1)[-1].lower()
+
+
+def feed_entry_elements(root: ET.Element) -> list[ET.Element]:
+    return [
+        element for element in root.iter()
+        if local_name(element.tag) in {"entry", "item"}
+    ]
+
+
+def opml_outline_elements(root: ET.Element) -> list[ET.Element]:
+    return [
+        element for element in root.iter()
+        if local_name(element.tag) == "outline"
+        and (element.attrib.get("xmlUrl") or element.attrib.get("htmlUrl") or element.attrib.get("url"))
+    ]
+
+
 def import_feeds(inv: sqlite3.Connection, out: sqlite3.Connection, config: ImportConfig, batch_id: str) -> int:
+    extension_list = ", ".join(f"'{extension}'" for extension in sorted(FEED_EXTENSIONS))
     feed_rows = rows(
         inv,
         limit_sql(
-        """
+        f"""
         SELECT path
         FROM files
-        WHERE classification = 'data_file'
-          AND extension IN ('.xml', '.rss', '.atom')
+        WHERE classification IN ('data_file', 'unknown')
+          AND extension IN ({extension_list})
         ORDER BY path
         """,
         config.max_records,
@@ -468,10 +559,28 @@ def import_feeds(inv: sqlite3.Connection, out: sqlite3.Connection, config: Impor
         source_file = config.source_root / source_path
         try:
             root = ET.fromstring(read_text(source_file))
-            entries = [
-                element for element in root.iter()
-                if element.tag.endswith("entry") or element.tag.endswith("item")
-            ]
+            entries = feed_entry_elements(root)
+            outlines = opml_outline_elements(root)
+            item_count = len(entries) if entries else len(outlines)
+            out.execute(
+                """
+                INSERT OR REPLACE INTO structured_data_files (
+                  source_path, legacy_url, content_domain, format, root_tag,
+                  item_count, checksum_sha256, import_batch_id, parser_version
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    source_path,
+                    normalize_legacy_url(source_path),
+                    content_domain(source_path),
+                    Path(source_path).suffix.lower().lstrip("."),
+                    local_name(root.tag),
+                    item_count,
+                    one(inv, "SELECT checksum_sha256 FROM files WHERE path = ?", (source_path,)),
+                    batch_id,
+                    PARSER_VERSION,
+                ),
+            )
             for index, entry in enumerate(entries):
                 out.execute(
                     """
@@ -493,8 +602,235 @@ def import_feeds(inv: sqlite3.Connection, out: sqlite3.Connection, config: Impor
                     ),
                 )
                 imported += 1
+            for index, outline in enumerate(outlines):
+                out.execute(
+                    """
+                    INSERT OR REPLACE INTO feed_entries (
+                      source_path, entry_index, feed_name, title, link,
+                      published_at, summary_html, import_batch_id, parser_version
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        source_path,
+                        index,
+                        Path(source_path).stem,
+                        outline.attrib.get("text") or outline.attrib.get("title") or "",
+                        outline.attrib.get("xmlUrl") or outline.attrib.get("htmlUrl") or outline.attrib.get("url") or "",
+                        "",
+                        outline.attrib.get("description") or "",
+                        batch_id,
+                        PARSER_VERSION,
+                    ),
+                )
+                imported += 1
         except Exception as exc:
             record_failure(out, batch_id, source_path, "feed", exc)
+    return imported
+
+
+def relative_rows(inv: sqlite3.Connection, where_sql: str, max_records: int | None) -> list[dict[str, object]]:
+    return rows(
+        inv,
+        limit_sql(
+            f"""
+            SELECT *
+            FROM files
+            WHERE kind = 'file'
+              AND status = 'ok'
+              AND ({where_sql})
+            ORDER BY path
+            """,
+            max_records,
+        ),
+    )
+
+
+def media_link_count(links: list[tuple[str, str]]) -> int:
+    return sum(
+        1 for _, url in links
+        if Path(url.split("?", 1)[0].split("#", 1)[0]).suffix.lower() in MEDIA_EXTENSIONS
+    )
+
+
+def first_external_link(links: list[tuple[str, str]]) -> str:
+    for _, url in links:
+        if re.match(r"^https?://", url, re.I):
+            return url
+    return ""
+
+
+def extract_page(path: Path) -> tuple[str, list[tuple[str, str]], str, int]:
+    size = path.stat().st_size
+    text = read_text_limited(path, MAX_DOMAIN_TEXT_BYTES)
+    extractor = LinkExtractor()
+    extractor.feed(text)
+    return " ".join(extractor.title_parts), extractor.links, text, 1 if size > MAX_DOMAIN_TEXT_BYTES else 0
+
+
+def title_from_path(source_path: str) -> str:
+    stem = Path(source_path).stem.replace("_", " ").replace("-", " ").strip()
+    return " ".join(stem.split()) or source_path
+
+
+def import_gallery_manifests(inv: sqlite3.Connection, out: sqlite3.Connection, config: ImportConfig, batch_id: str) -> int:
+    gallery_rows = relative_rows(
+        inv,
+        "lower(path) LIKE 'gallery/%' OR lower(path) LIKE 'gallaries/%' OR lower(path) LIKE 'pictures/%' OR lower(path) LIKE 'images/%'",
+        config.max_records,
+    )
+    imported = 0
+    for row in gallery_rows:
+        source_path = str(row["path"])
+        if str(row["classification"]) == "media_asset":
+            continue
+        try:
+            title, links, _, _ = extract_page(config.source_root / source_path)
+            out.execute(
+                """
+                INSERT OR REPLACE INTO gallery_manifests (
+                  source_path, legacy_url, title, media_reference_count,
+                  checksum_sha256, import_batch_id, parser_version
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    source_path,
+                    normalize_legacy_url(source_path),
+                    title or title_from_path(source_path),
+                    media_link_count(links),
+                    row["checksum_sha256"],
+                    batch_id,
+                    PARSER_VERSION,
+                ),
+            )
+            imported += 1
+        except Exception as exc:
+            record_failure(out, batch_id, source_path, "gallery", exc)
+    return imported
+
+
+def import_advertisers(inv: sqlite3.Connection, out: sqlite3.Connection, config: ImportConfig, batch_id: str) -> int:
+    advertiser_rows = relative_rows(
+        inv,
+        "lower(path) LIKE 'advertisers/%' OR lower(path) LIKE 'ads/%' OR lower(path) = 'advertisers.xml'",
+        config.max_records,
+    )
+    imported = 0
+    for row in advertiser_rows:
+        source_path = str(row["path"])
+        if str(row["classification"]) == "media_asset":
+            continue
+        try:
+            title, links, body, truncated = extract_page(config.source_root / source_path)
+            out.execute(
+                """
+                INSERT OR REPLACE INTO advertiser_records (
+                  source_path, legacy_url, name, website_url, body_html,
+                  body_truncated, logo_reference_count, checksum_sha256,
+                  import_batch_id, parser_version
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    source_path,
+                    normalize_legacy_url(source_path),
+                    title or title_from_path(source_path),
+                    first_external_link(links),
+                    body,
+                    truncated,
+                    media_link_count(links),
+                    row["checksum_sha256"],
+                    batch_id,
+                    PARSER_VERSION,
+                ),
+            )
+            imported += 1
+        except Exception as exc:
+            record_failure(out, batch_id, source_path, "advertiser", exc)
+    return imported
+
+
+def import_classifieds(inv: sqlite3.Connection, out: sqlite3.Connection, config: ImportConfig, batch_id: str) -> int:
+    classified_rows = relative_rows(
+        inv,
+        "lower(path) LIKE 'classified%' OR lower(path) LIKE 'market/%'",
+        config.max_records,
+    )
+    imported = 0
+    for row in classified_rows:
+        source_path = str(row["path"])
+        if str(row["classification"]) == "media_asset":
+            continue
+        try:
+            title, links, body, truncated = extract_page(config.source_root / source_path)
+            out.execute(
+                """
+                INSERT OR REPLACE INTO classified_records (
+                  source_path, legacy_url, category, title, body_html,
+                  body_truncated, media_reference_count, checksum_sha256,
+                  import_batch_id, parser_version
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    source_path,
+                    normalize_legacy_url(source_path),
+                    Path(source_path).parts[0] if Path(source_path).parts else "classified",
+                    title or title_from_path(source_path),
+                    body,
+                    truncated,
+                    media_link_count(links),
+                    row["checksum_sha256"],
+                    batch_id,
+                    PARSER_VERSION,
+                ),
+            )
+            imported += 1
+        except Exception as exc:
+            record_failure(out, batch_id, source_path, "classified", exc)
+    return imported
+
+
+def import_ridecamp_messages(inv: sqlite3.Connection, out: sqlite3.Connection, config: ImportConfig, batch_id: str) -> int:
+    ridecamp_rows = relative_rows(
+        inv,
+        "lower(path) LIKE 'ridecamp%' OR lower(path) LIKE 'ridecampfriend/%'",
+        config.max_records,
+    )
+    imported = 0
+    for row in ridecamp_rows:
+        source_path = str(row["path"])
+        if str(row["classification"]) == "media_asset":
+            continue
+        try:
+            title, links, body, truncated = extract_page(config.source_root / source_path)
+            hrefs = [url for _, url in links]
+            out.execute(
+                """
+                INSERT OR REPLACE INTO ridecamp_messages (
+                  source_path, legacy_url, subject, author_display, posted_at,
+                  body_html, body_truncated, previous_by_date_url, next_by_date_url,
+                  previous_by_thread_url, next_by_thread_url, checksum_sha256,
+                  import_batch_id, parser_version
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    source_path,
+                    normalize_legacy_url(source_path),
+                    title or title_from_path(source_path),
+                    "",
+                    "",
+                    body,
+                    truncated,
+                    hrefs[0] if len(hrefs) > 0 else "",
+                    hrefs[1] if len(hrefs) > 1 else "",
+                    hrefs[2] if len(hrefs) > 2 else "",
+                    hrefs[3] if len(hrefs) > 3 else "",
+                    row["checksum_sha256"],
+                    batch_id,
+                    PARSER_VERSION,
+                ),
+            )
+            imported += 1
+        except Exception as exc:
+            record_failure(out, batch_id, source_path, "ridecamp", exc)
     return imported
 
 
@@ -509,7 +845,12 @@ def write_reports(out: sqlite3.Connection, config: ImportConfig, batch_id: str) 
         "template_pages": one(out, "SELECT COUNT(*) FROM template_pages"),
         "content_fragments": one(out, "SELECT COUNT(*) FROM content_fragments"),
         "feed_entries": one(out, "SELECT COUNT(*) FROM feed_entries"),
+        "structured_data_files": one(out, "SELECT COUNT(*) FROM structured_data_files"),
         "media_references": one(out, "SELECT COUNT(*) FROM media_references"),
+        "gallery_manifests": one(out, "SELECT COUNT(*) FROM gallery_manifests"),
+        "advertiser_records": one(out, "SELECT COUNT(*) FROM advertiser_records"),
+        "classified_records": one(out, "SELECT COUNT(*) FROM classified_records"),
+        "ridecamp_messages": one(out, "SELECT COUNT(*) FROM ridecamp_messages"),
         "failures": one(out, "SELECT COUNT(*) FROM import_failures WHERE batch_id = ?", (batch_id,)),
         "domain_counts": rows(
             out,
@@ -576,8 +917,15 @@ def main(argv: list[str]) -> int:
         media_count = import_media_assets(inv, out, batch_id, config.max_records)
         template_count = import_templates(inv, out, config, batch_id)
         feed_count = import_feeds(inv, out, config, batch_id)
+        gallery_count = import_gallery_manifests(inv, out, config, batch_id)
+        advertiser_count = import_advertisers(inv, out, config, batch_id)
+        classified_count = import_classifieds(inv, out, config, batch_id)
+        ridecamp_count = import_ridecamp_messages(inv, out, config, batch_id)
         failures = int(one(out, "SELECT COUNT(*) FROM import_failures WHERE batch_id = ?", (batch_id,)) or 0)
-        records_imported = source_count + media_count + template_count + feed_count
+        records_imported = (
+            source_count + media_count + template_count + feed_count
+            + gallery_count + advertiser_count + classified_count + ridecamp_count
+        )
         out.execute(
             """
             UPDATE import_batches
