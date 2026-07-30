@@ -46,6 +46,16 @@ python3 scripts/check_media_manifest.py --api-base-url http://localhost:9000
 This verifies the currently manifested homepage media URLs. It does not prove
 the full legacy media catalog has been imported; that remains part of #11.
 
+Use the source/import media manifest generator for full-catalog accounting:
+
+```bash
+python3 scripts/media_asset_manifest.py
+```
+
+See `docs/media-asset-pipeline.md` for generated manifest files, missing media
+reference reports, unreadable media reports, and `/legacy-media/` runtime URL
+expectations.
+
 ## Runtime Smoke
 
 Use Playwright smoke screenshots against a running frontend:
