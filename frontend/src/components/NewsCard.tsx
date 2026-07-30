@@ -15,6 +15,9 @@ export default function NewsCard({ news }: Props) {
 
   return (
     <div className="card">
+      {news.imageUrl && (
+        <img className="card-image" src={news.imageUrl} alt="" loading="lazy" />
+      )}
       <div className="card-badge">{news.category}</div>
       <h3>{news.title}</h3>
       <div className="card-meta">

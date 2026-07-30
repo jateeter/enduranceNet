@@ -222,6 +222,14 @@ ul { list-style: none; }
   transition: border-color var(--transition), box-shadow var(--transition);
 }
 .card:hover { border-color: var(--color-primary); box-shadow: var(--shadow); }
+.card-image {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-alt);
+}
 .card-badge {
   display: inline-block;
   background: rgba(47, 111, 94, 0.12);
@@ -312,6 +320,14 @@ ul { list-style: none; }
 /* ===== Article ===== */
 .article { display: flex; flex-direction: column; gap: 1rem; }
 .article h1 { font-size: 2.25rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; }
+.article-image {
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
 .article-meta {
   display: flex;
   flex-wrap: wrap;
@@ -373,6 +389,70 @@ ul { list-style: none; }
 .feature-link svg { color: var(--color-primary); }
 .feature-link span { font-weight: 800; font-size: 1.1rem; }
 .feature-link p { color: var(--color-text-muted); font-size: 0.9rem; line-height: 1.6; }
+
+.asset-rail {
+  margin-top: 2rem;
+}
+.asset-rail-header {
+  margin-bottom: 0.9rem;
+}
+.asset-rail-header h3 {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+.asset-link {
+  min-height: 138px;
+  display: grid;
+  grid-template-rows: 82px auto;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  text-align: center;
+}
+.asset-link:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary-dark);
+}
+.asset-image-wrap {
+  width: 100%;
+  height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--color-bg);
+}
+.asset-image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.35rem;
+}
+.asset-title {
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.asset-rail-logo .asset-grid {
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+}
 
 /* ===== Event Detail ===== */
 .event-detail { display: flex; flex-direction: column; gap: 1.25rem; }
