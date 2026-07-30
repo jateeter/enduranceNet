@@ -2,17 +2,21 @@ import { Link } from 'react-router-dom';
 import Hero from '../components/Hero';
 import EventCard from '../components/EventCard';
 import NewsCard from '../components/NewsCard';
+import HomepageAssetRail from '../components/HomepageAssetRail';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 import { useApi } from '../hooks/useApi';
-import { fetchEvents, fetchNews } from '../api/endpoints';
+import { fetchEvents, fetchHomepageAssets, fetchNews } from '../api/endpoints';
 import { ArrowRight, BadgeDollarSign, Mail, MessageSquareText } from 'lucide-react';
 
 export default function HomePage() {
   const events = useApi(fetchEvents);
   const news = useApi(fetchNews);
-  const currentNews = news.data?.filter((item) => item.category !== 'Featured Stories') ?? [];
+  const homepageAssets = useApi(fetchHomepageAssets);
+  const currentNews = news.data?.filter((item) => item.category === 'Current News') ?? [];
   const featuredStories = news.data?.filter((item) => item.category === 'Featured Stories') ?? [];
+  const assetsFor = (placement: string) =>
+    homepageAssets.data?.filter((asset) => asset.placement === placement) ?? [];
 
   return (
     <>
@@ -35,6 +39,9 @@ export default function HomePage() {
             ))}
           </div>
         )}
+        {homepageAssets.loading && <LoadingSpinner />}
+        {homepageAssets.error && <ErrorMessage message={homepageAssets.error} />}
+        <HomepageAssetRail title="Brought to you by" assets={assetsFor('current_news_sponsor')} variant="logo" />
       </section>
 
       {/* Featured Stories */}
@@ -54,6 +61,7 @@ export default function HomePage() {
             ))}
           </div>
         )}
+        <HomepageAssetRail title="Featured Story Media" assets={assetsFor('featured_story')} />
       </section>
 
       {/* Event Coverage */}
@@ -73,6 +81,18 @@ export default function HomePage() {
             ))}
           </div>
         )}
+        <HomepageAssetRail title="Legacy Homepage Event Blocks" assets={assetsFor('event_coverage')} />
+      </section>
+
+      <section className="section section-alt">
+        <div className="section-header">
+          <h2>Advertisers & Sponsors</h2>
+          <Link to="/featured-stories" className="btn btn-outline btn-sm">
+            Featured archive <ArrowRight size={14} />
+          </Link>
+        </div>
+        <HomepageAssetRail title="Homepage Advertiser Manifest" assets={assetsFor('advertiser')} variant="logo" />
+        <HomepageAssetRail title="Follow Endurance.Net" assets={assetsFor('social')} variant="logo" />
       </section>
 
       <section className="section section-alt">

@@ -1,6 +1,6 @@
 package repositories
 
-import models.{Event, News}
+import models.{Event, HomepageAsset, LegacyRedirect, News}
 import play.api.db.slick.DatabaseConfigProvider
 import slick.jdbc.JdbcProfile
 
@@ -40,8 +40,34 @@ class ContentRepository @Inject()(databaseConfigProvider: DatabaseConfigProvider
     def * = (id, name, eventType, date, location, distance, description, registrationUrl) <> ((Event.apply _).tupled, Event.unapply)
   }
 
+  private class HomepageAssetsTable(tag: Tag) extends Table[HomepageAsset](tag, "homepage_assets") {
+    def id = column[Long]("id", O.PrimaryKey)
+    def placement = column[String]("placement")
+    def title = column[String]("title")
+    def imageUrl = column[String]("image_url")
+    def linkUrl = column[String]("link_url")
+    def altText = column[String]("alt_text")
+    def sourceLegacyUrl = column[String]("source_legacy_url")
+    def sourcePath = column[String]("source_path")
+    def sortOrder = column[Int]("sort_order")
+
+    def * = (id, placement, title, imageUrl, linkUrl, altText, sourceLegacyUrl, sourcePath, sortOrder) <> ((HomepageAsset.apply _).tupled, HomepageAsset.unapply)
+  }
+
+  private class LegacyRedirectsTable(tag: Tag) extends Table[LegacyRedirect](tag, "legacy_redirects") {
+    def id = column[Long]("id", O.PrimaryKey)
+    def legacyUrl = column[String]("legacy_url")
+    def targetUrl = column[String]("target_url")
+    def statusCode = column[Int]("status_code")
+    def reason = column[String]("reason")
+
+    def * = (id, legacyUrl, targetUrl, statusCode, reason) <> ((LegacyRedirect.apply _).tupled, LegacyRedirect.unapply)
+  }
+
   private val news = TableQuery[NewsTable]
   private val events = TableQuery[EventsTable]
+  private val homepageAssets = TableQuery[HomepageAssetsTable]
+  private val legacyRedirects = TableQuery[LegacyRedirectsTable]
 
   def listNews(): Future[Seq[News]] =
     db.run(news.sortBy(item => (item.publishedAt.desc, item.id.desc)).result)
@@ -54,4 +80,10 @@ class ContentRepository @Inject()(databaseConfigProvider: DatabaseConfigProvider
 
   def getEvent(id: Long): Future[Option[Event]] =
     db.run(events.filter(_.id === id).result.headOption)
+
+  def listHomepageAssets(): Future[Seq[HomepageAsset]] =
+    db.run(homepageAssets.sortBy(asset => (asset.placement.asc, asset.sortOrder.asc, asset.id.asc)).result)
+
+  def listLegacyRedirects(): Future[Seq[LegacyRedirect]] =
+    db.run(legacyRedirects.sortBy(redirect => (redirect.legacyUrl.asc, redirect.id.asc)).result)
 }

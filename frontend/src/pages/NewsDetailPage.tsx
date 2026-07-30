@@ -21,6 +21,9 @@ export default function NewsDetailPage() {
         <article className="article">
           <div className="card-badge">{news.category}</div>
           <h1>{news.title}</h1>
+          {news.imageUrl && (
+            <img className="article-image" src={news.imageUrl} alt="" />
+          )}
           <div className="article-meta">
             <span><User size={14} /> {news.author}</span>
             <span>

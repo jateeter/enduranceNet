@@ -7,6 +7,7 @@ import { Newspaper } from 'lucide-react';
 
 export default function NewsPage() {
   const { data: news, loading, error } = useApi(fetchNews);
+  const currentNews = news?.filter((item) => item.category === 'Current News') ?? [];
 
   return (
     <div className="page">
@@ -20,7 +21,7 @@ export default function NewsPage() {
       {error && <ErrorMessage message={error} />}
       {news && (
         <div className="card-grid card-grid-wide">
-          {news.map((n) => (
+          {currentNews.map((n) => (
             <NewsCard key={n.id} news={n} />
           ))}
         </div>

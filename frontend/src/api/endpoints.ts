@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { Event, News, Athlete, Result } from '../types';
+import type { Event, HomepageAsset, LegacyRedirect, News, Athlete, Result } from '../types';
 
 export const fetchEvents = (): Promise<Event[]> =>
   apiClient.get<Event[]>('/events').then((r) => r.data);
@@ -12,6 +12,12 @@ export const fetchNews = (): Promise<News[]> =>
 
 export const fetchNewsItem = (id: number): Promise<News> =>
   apiClient.get<News>(`/news/${id}`).then((r) => r.data);
+
+export const fetchHomepageAssets = (): Promise<HomepageAsset[]> =>
+  apiClient.get<HomepageAsset[]>('/homepage-assets').then((r) => r.data);
+
+export const fetchLegacyRedirects = (): Promise<LegacyRedirect[]> =>
+  apiClient.get<LegacyRedirect[]>('/legacy-redirects').then((r) => r.data);
 
 export const fetchAthletes = (): Promise<Athlete[]> =>
   apiClient.get<Athlete[]>('/athletes').then((r) => r.data);

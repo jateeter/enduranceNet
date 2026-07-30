@@ -20,6 +20,26 @@ export interface News {
   imageUrl?: string;
 }
 
+export interface HomepageAsset {
+  id: number;
+  placement: string;
+  title: string;
+  imageUrl: string;
+  linkUrl: string;
+  altText: string;
+  sourceLegacyUrl: string;
+  sourcePath: string;
+  sortOrder: number;
+}
+
+export interface LegacyRedirect {
+  id: number;
+  legacyUrl: string;
+  targetUrl: string;
+  statusCode: number;
+  reason: string;
+}
+
 export interface Athlete {
   id: number;
   name: string;
