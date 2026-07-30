@@ -1,4 +1,5 @@
 import NewsCard from '../components/NewsCard';
+import LegacySectionHeader from '../components/LegacySectionHeader';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 import { useApi } from '../hooks/useApi';
@@ -11,11 +12,12 @@ export default function FeaturedStoriesPage() {
 
   return (
     <div className="page">
-      <div className="page-header">
-        <BookOpen size={40} />
-        <h1>Featured Stories</h1>
-        <p>Longer reads, memorials, international coverage, and community-history pieces from the Endurance.Net archive.</p>
-      </div>
+      <LegacySectionHeader
+        title="Featured Stories"
+        subtitle="Longer reads, memorials, international coverage, and community-history pieces from the Endurance.Net archive."
+        banner="/images/ENbanner_right_stories.jpg"
+        icon={<BookOpen size={28} />}
+      />
 
       {loading && <LoadingSpinner />}
       {error && <ErrorMessage message={error} />}

@@ -33,10 +33,22 @@ export default function HomePage() {
         {news.loading && <LoadingSpinner />}
         {news.error && <ErrorMessage message={news.error} />}
         {news.data && (
-          <div className="card-grid">
-            {currentNews.slice(0, 3).map((n) => (
-              <NewsCard key={n.id} news={n} />
-            ))}
+          <div className="legacy-home-grid">
+            <div className="headline-panel">
+              <ol className="headline-list">
+                {currentNews.slice(0, 8).map((n) => (
+                  <li key={n.id}>
+                    <Link to={`/news/${n.id}`}>{n.title}</Link>
+                    <span>{n.summary}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <div className="feature-card-stack">
+              {currentNews.slice(0, 2).map((n) => (
+                <NewsCard key={n.id} news={n} />
+              ))}
+            </div>
           </div>
         )}
         {homepageAssets.loading && <LoadingSpinner />}
@@ -55,7 +67,7 @@ export default function HomePage() {
         {news.loading && <LoadingSpinner />}
         {news.error && <ErrorMessage message={news.error} />}
         {news.data && (
-          <div className="card-grid">
+          <div className="legacy-card-list">
             {featuredStories.slice(0, 3).map((n) => (
               <NewsCard key={n.id} news={n} />
             ))}

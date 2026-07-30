@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, Mountain, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
+import { legacyAssetUrl } from '../utils/legacyAssets';
 
 const navLinks = [
   { to: '/', label: 'Home' },
@@ -17,9 +18,13 @@ export default function Navbar() {
 
   return (
     <nav className="navbar">
+      <Link to="/" className="masthead" onClick={() => setOpen(false)}>
+        <img src={legacyAssetUrl('/images/ENbanner_sm_left.jpg')} alt="Endurance.Net" />
+        <img src={legacyAssetUrl('/images/ENbanner_sm_right.jpg')} alt="" />
+      </Link>
       <div className="navbar-inner">
         <Link to="/" className="navbar-brand" onClick={() => setOpen(false)}>
-          <Mountain size={28} />
+          <span className="brand-mark">@</span>
           <span>Endurance.Net</span>
         </Link>
 

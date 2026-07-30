@@ -4,6 +4,7 @@ import { fetchNewsItem } from '../api/endpoints';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 import { ArrowLeft, User, Clock, Tag } from 'lucide-react';
+import { legacyAssetUrl } from '../utils/legacyAssets';
 
 export default function NewsDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,7 +23,7 @@ export default function NewsDetailPage() {
           <div className="card-badge">{news.category}</div>
           <h1>{news.title}</h1>
           {news.imageUrl && (
-            <img className="article-image" src={news.imageUrl} alt="" />
+            <img className="article-image" src={legacyAssetUrl(news.imageUrl)} alt="" />
           )}
           <div className="article-meta">
             <span><User size={14} /> {news.author}</span>

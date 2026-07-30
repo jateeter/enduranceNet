@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Clock, User, Tag, ArrowRight } from 'lucide-react';
 import type { News } from '../types';
+import { legacyAssetUrl } from '../utils/legacyAssets';
 
 interface Props {
   news: News;
@@ -16,7 +17,7 @@ export default function NewsCard({ news }: Props) {
   return (
     <div className="card">
       {news.imageUrl && (
-        <img className="card-image" src={news.imageUrl} alt="" loading="lazy" />
+        <img className="card-image" src={legacyAssetUrl(news.imageUrl)} alt="" loading="lazy" />
       )}
       <div className="card-badge">{news.category}</div>
       <h3>{news.title}</h3>

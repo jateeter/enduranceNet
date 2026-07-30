@@ -41,3 +41,7 @@ migration/coverage/*
 !migration/coverage/.gitkeep
 migration/imports/*
 !migration/imports/.gitkeep
+
+# Local visual verification artifacts
+output/playwright/
+.playwright-cli/

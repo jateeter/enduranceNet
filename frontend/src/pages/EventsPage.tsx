@@ -1,4 +1,5 @@
 import EventCard from '../components/EventCard';
+import LegacySectionHeader from '../components/LegacySectionHeader';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 import { useApi } from '../hooks/useApi';
@@ -10,11 +11,12 @@ export default function EventsPage() {
 
   return (
     <div className="page">
-      <div className="page-header">
-        <Calendar size={40} />
-        <h1>Endurance Events</h1>
-        <p>Browse endurance riding coverage, international championships, ride-series pages, results, and gallery archives.</p>
-      </div>
+      <LegacySectionHeader
+        title="Endurance Events"
+        subtitle="Browse endurance riding coverage, international championships, ride-series pages, results, and gallery archives."
+        banner="/images/banner_sm_right_events.jpg"
+        icon={<Calendar size={28} />}
+      />
 
       {loading && <LoadingSpinner />}
       {error && <ErrorMessage message={error} />}
