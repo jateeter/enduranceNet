@@ -1,4 +1,5 @@
 import NewsCard from '../components/NewsCard';
+import LegacySectionHeader from '../components/LegacySectionHeader';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 import { useApi } from '../hooks/useApi';
@@ -11,16 +12,17 @@ export default function NewsPage() {
 
   return (
     <div className="page">
-      <div className="page-header">
-        <Newspaper size={40} />
-        <h1>Current News</h1>
-        <p>The weekly Endurance.Net digest: ride coverage, international updates, galleries, and community notes.</p>
-      </div>
+      <LegacySectionHeader
+        title="Current News"
+        subtitle="The weekly Endurance.Net digest: ride coverage, international updates, galleries, and community notes."
+        banner="/images/banner_sm_right_newsblogs.jpg"
+        icon={<Newspaper size={28} />}
+      />
 
       {loading && <LoadingSpinner />}
       {error && <ErrorMessage message={error} />}
       {news && (
-        <div className="card-grid card-grid-wide">
+        <div className="news-list-grid">
           {currentNews.map((n) => (
             <NewsCard key={n.id} news={n} />
           ))}

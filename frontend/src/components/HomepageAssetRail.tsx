@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
 import type { HomepageAsset } from '../types';
+import { legacyAssetUrl } from '../utils/legacyAssets';
 
 interface Props {
   title: string;
@@ -12,7 +13,7 @@ function AssetLink({ asset }: { asset: HomepageAsset }) {
   const content = (
     <>
       <span className="asset-image-wrap">
-        <img src={asset.imageUrl} alt={asset.altText} loading="lazy" />
+        <img src={legacyAssetUrl(asset.imageUrl)} alt={asset.altText} loading="lazy" />
       </span>
       <span className="asset-title">{asset.title}</span>
       {!asset.linkUrl.startsWith('/') && <ExternalLink size={13} aria-hidden="true" />}

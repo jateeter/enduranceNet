@@ -1,4 +1,5 @@
 import AthleteCard from '../components/AthleteCard';
+import LegacySectionHeader from '../components/LegacySectionHeader';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 import { useApi } from '../hooks/useApi';
@@ -10,11 +11,12 @@ export default function AthletesPage() {
 
   return (
     <div className="page">
-      <div className="page-header">
-        <MessageSquareText size={40} />
-        <h1>Ridecamp</h1>
-        <p>Community archive migration for legacy Ridecamp people, horses, message history, and shared knowledge.</p>
-      </div>
+      <LegacySectionHeader
+        title="Ridecamp"
+        subtitle="Community archive migration for legacy Ridecamp people, horses, message history, and shared knowledge."
+        banner="/images/banner_sm_right_ridecamp.jpg"
+        icon={<MessageSquareText size={28} />}
+      />
 
       {loading && <LoadingSpinner />}
       {error && <ErrorMessage message={error} />}

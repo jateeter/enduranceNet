@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { BookOpen, Camera, ChevronRight, Globe2, Newspaper } from 'lucide-react';
+import { legacyAssetUrl } from '../utils/legacyAssets';
 
 const stats = [
   { icon: <Newspaper size={28} />, value: 'Current', label: 'Weekly News Digest' },
@@ -14,14 +15,12 @@ export default function Hero() {
       <div className="hero-content">
         <div className="hero-badge">Endurance Riding News · Stories · Events</div>
         <h1>
-          Endurance.Net<br />
-          <span className="hero-highlight">Next Generation</span><br />
-          Archive & Newsroom
+          Endurance.Net
+          <span className="hero-highlight"> Next Generation</span>
         </h1>
         <p className="hero-subtitle">
-          The modern home for endurance riding current news, featured stories,
-          event coverage, galleries, Ridecamp history, classifieds, and advertiser
-          resources migrated from the legacy PHP site.
+          Current news, featured stories, event coverage, Ridecamp, classifieds,
+          and advertiser resources migrated from the legacy PHP portal.
         </p>
         <div className="hero-actions">
           <Link to="/news" className="btn btn-primary">
@@ -30,6 +29,12 @@ export default function Hero() {
           <Link to="/featured-stories" className="btn btn-outline">
             Featured Stories
           </Link>
+        </div>
+        <div className="hero-legacy-strip">
+          <img src={legacyAssetUrl('/images/banner_sm_right_newsblogs.jpg')} alt="News and blogs" />
+          <img src={legacyAssetUrl('/images/banner_sm_right_events.jpg')} alt="Events" />
+          <img src={legacyAssetUrl('/images/banner_sm_right_ridecamp.jpg')} alt="Ridecamp" />
+          <img src={legacyAssetUrl('/images/banner_sm_right_classified.jpg')} alt="Classifieds" />
         </div>
       </div>
 
