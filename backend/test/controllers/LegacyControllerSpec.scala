@@ -32,4 +32,34 @@ class LegacyControllerSpec extends PlaySpec with GuiceOneAppPerTest with Injecti
       (json \\ "targetUrl").map(_.as[String]) must contain("/news/5")
     }
   }
+
+  "LegacyController#resolveRedirect" should {
+    "resolve a legacy wrapper path from the redirect table" in {
+      val controller = inject[LegacyController]
+      val result = controller.resolveRedirect().apply(FakeRequest(GET, "/api/legacy-redirects/resolve?url=/CurrentNews/"))
+      val json = contentAsJson(result)
+
+      status(result) mustBe OK
+      (json \ "legacyUrl").as[String] mustBe "/CurrentNews/"
+      (json \ "targetUrl").as[String] mustBe "/news"
+      (json \ "statusCode").as[Int] mustBe 301
+    }
+
+    "resolve a known legacy anchor when the hash is encoded in the query value" in {
+      val controller = inject[LegacyController]
+      val result = controller.resolveRedirect().apply(FakeRequest(GET, "/api/legacy-redirects/resolve?url=/FeaturedStories/%23AnnKratochvil"))
+      val json = contentAsJson(result)
+
+      status(result) mustBe OK
+      (json \ "legacyUrl").as[String] mustBe "/FeaturedStories/#AnnKratochvil"
+      (json \ "targetUrl").as[String] mustBe "/news/5"
+    }
+
+    "return 404 for an unknown legacy path" in {
+      val controller = inject[LegacyController]
+      val result = controller.resolveRedirect().apply(FakeRequest(GET, "/api/legacy-redirects/resolve?url=/not-migrated.html"))
+
+      status(result) mustBe NOT_FOUND
+    }
+  }
 }

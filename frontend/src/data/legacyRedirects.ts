@@ -17,6 +17,17 @@ const legacyPathTargets: Record<string, string> = {
   '/FeaturedStories/': '/featured-stories',
   '/FeaturedStories/index.html': '/featured-stories',
   '/FeaturedStories/indexInternal.html': '/featured-stories',
+  '/newsblogs': '/news',
+  '/newsblogs/': '/news',
+  '/newsblogs/index.html': '/news',
+  '/events/': '/events',
+  '/events/index.html': '/events',
+  '/ClassifiedAds': '/results',
+  '/ClassifiedAds/': '/results',
+  '/ClassifiedAds/index.html': '/results',
+  '/RidecampFriend': '/athletes',
+  '/RidecampFriend/': '/athletes',
+  '/RidecampFriend/index.html': '/athletes',
 };
 
 export function resolveLegacyRedirect(pathname: string, hash = ''): string {

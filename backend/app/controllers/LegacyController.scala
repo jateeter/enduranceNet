@@ -18,4 +18,16 @@ class LegacyController @Inject()(val controllerComponents: ControllerComponents,
   def redirects(): Action[AnyContent] = Action.async {
     contentRepository.listLegacyRedirects().map(redirects => Ok(Json.toJson(redirects)))
   }
+
+  def resolveRedirect(): Action[AnyContent] = Action.async { request =>
+    request.getQueryString("url") match {
+      case Some(legacyUrl) if legacyUrl.trim.nonEmpty =>
+        contentRepository.resolveLegacyRedirect(legacyUrl.trim).map {
+          case Some(redirect) => Ok(Json.toJson(redirect))
+          case None           => NotFound(Json.obj("error" -> s"No legacy redirect for $legacyUrl"))
+        }
+      case _ =>
+        scala.concurrent.Future.successful(BadRequest(Json.obj("error" -> "Missing required url query parameter")))
+    }
+  }
 }
