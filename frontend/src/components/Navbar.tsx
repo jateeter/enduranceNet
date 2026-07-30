@@ -8,8 +8,8 @@ const navLinks = [
   { to: '/news', label: 'Current News' },
   { to: '/featured-stories', label: 'Featured Stories' },
   { to: '/events', label: 'Events' },
-  { to: '/athletes', label: 'Ridecamp' },
-  { to: '/results', label: 'Classifieds' },
+  { to: '/community', label: 'Community' },
+  { to: '/results', label: 'Results' },
 ];
 
 export default function Navbar() {

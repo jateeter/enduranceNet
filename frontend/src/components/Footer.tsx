@@ -20,15 +20,16 @@ export default function Footer() {
               <li><Link to="/news">Current News</Link></li>
               <li><Link to="/featured-stories">Featured Stories</Link></li>
               <li><Link to="/events">Events</Link></li>
-              <li><Link to="/results">Classifieds</Link></li>
+              <li><Link to="/results">Results</Link></li>
             </ul>
           </div>
           <div>
             <h4>Community</h4>
             <ul>
-              <li><Link to="/athletes">Ridecamp</Link></li>
+              <li><Link to="/community">Advertisers</Link></li>
+              <li><Link to="/community#classifieds">Classifieds</Link></li>
+              <li><Link to="/community#ridecamp">Ridecamp</Link></li>
               <li><a href="mailto:merri@endurance.net">Contact</a></li>
-              <li><a href="#privacy">Privacy Policy</a></li>
             </ul>
           </div>
         </div>
