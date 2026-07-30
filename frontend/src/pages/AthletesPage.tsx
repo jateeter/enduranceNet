@@ -3,7 +3,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 import { useApi } from '../hooks/useApi';
 import { fetchAthletes } from '../api/endpoints';
-import { Users } from 'lucide-react';
+import { MessageSquareText } from 'lucide-react';
 
 export default function AthletesPage() {
   const { data: athletes, loading, error } = useApi(fetchAthletes);
@@ -11,9 +11,9 @@ export default function AthletesPage() {
   return (
     <div className="page">
       <div className="page-header">
-        <Users size={40} />
-        <h1>Athletes</h1>
-        <p>Meet the elite endurance athletes pushing the limits of human performance.</p>
+        <MessageSquareText size={40} />
+        <h1>Ridecamp</h1>
+        <p>Community archive migration for legacy Ridecamp people, horses, message history, and shared knowledge.</p>
       </div>
 
       {loading && <LoadingSpinner />}

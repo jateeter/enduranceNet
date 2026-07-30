@@ -1,13 +1,14 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Activity, Menu, X } from 'lucide-react';
+import { Menu, Mountain, X } from 'lucide-react';
 import { useState } from 'react';
 
 const navLinks = [
   { to: '/', label: 'Home' },
+  { to: '/news', label: 'Current News' },
+  { to: '/featured-stories', label: 'Featured Stories' },
   { to: '/events', label: 'Events' },
-  { to: '/news', label: 'News' },
-  { to: '/athletes', label: 'Athletes' },
-  { to: '/results', label: 'Results' },
+  { to: '/athletes', label: 'Ridecamp' },
+  { to: '/results', label: 'Classifieds' },
 ];
 
 export default function Navbar() {
@@ -18,8 +19,8 @@ export default function Navbar() {
     <nav className="navbar">
       <div className="navbar-inner">
         <Link to="/" className="navbar-brand" onClick={() => setOpen(false)}>
-          <Activity size={28} />
-          <span>EnduranceNet</span>
+          <Mountain size={28} />
+          <span>Endurance.Net</span>
         </Link>
 
         <button className="navbar-toggle" onClick={() => setOpen(!open)} aria-label="Toggle menu">

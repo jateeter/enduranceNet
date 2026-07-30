@@ -2,7 +2,7 @@ import { useApi } from '../hooks/useApi';
 import { fetchResults } from '../api/endpoints';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
-import { BarChart2, Trophy, Clock, Medal } from 'lucide-react';
+import { BadgeDollarSign, Clock, Medal, Trophy } from 'lucide-react';
 
 export default function ResultsPage() {
   const { data: results, loading, error } = useApi(fetchResults);
@@ -18,9 +18,9 @@ export default function ResultsPage() {
   return (
     <div className="page">
       <div className="page-header">
-        <BarChart2 size={40} />
-        <h1>Race Results</h1>
-        <p>Official results from major endurance events around the world.</p>
+        <BadgeDollarSign size={40} />
+        <h1>Classifieds</h1>
+        <p>Migration staging for legacy horses, tack, trailers, jobs, and other marketplace listings.</p>
       </div>
 
       {loading && <LoadingSpinner />}
@@ -46,7 +46,7 @@ export default function ResultsPage() {
                       .map((r) => (
                         <tr key={r.id} className={r.place === 1 ? 'gold' : ''}>
                           <td className="place-cell">
-                            {r.place === 1 ? '🥇' : r.place === 2 ? '🥈' : r.place === 3 ? '🥉' : r.place}
+                            {r.place}
                           </td>
                           <td>{r.athleteName}</td>
                           <td>{r.category}</td>
