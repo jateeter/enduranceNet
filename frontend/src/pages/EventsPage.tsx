@@ -13,7 +13,7 @@ export default function EventsPage() {
       <div className="page-header">
         <Calendar size={40} />
         <h1>Endurance Events</h1>
-        <p>Discover the world's most prestigious endurance competitions across running, triathlon, cycling, and more.</p>
+        <p>Browse endurance riding coverage, international championships, ride-series pages, results, and gallery archives.</p>
       </div>
 
       {loading && <LoadingSpinner />}

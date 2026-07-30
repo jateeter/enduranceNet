@@ -1,34 +1,34 @@
 import { Link } from 'react-router-dom';
-import { ChevronRight, Activity, Users, Trophy, Globe } from 'lucide-react';
+import { BookOpen, Camera, ChevronRight, Globe2, Newspaper } from 'lucide-react';
 
 const stats = [
-  { icon: <Activity size={28} />, value: '500+', label: 'Events Tracked' },
-  { icon: <Users size={28} />, value: '50K+', label: 'Athletes' },
-  { icon: <Trophy size={28} />, value: '1M+', label: 'Race Results' },
-  { icon: <Globe size={28} />, value: '80+', label: 'Countries' },
+  { icon: <Newspaper size={28} />, value: 'Current', label: 'Weekly News Digest' },
+  { icon: <BookOpen size={28} />, value: 'Featured', label: 'Stories & Memorials' },
+  { icon: <Camera size={28} />, value: 'Archive', label: 'Ride Galleries' },
+  { icon: <Globe2 size={28} />, value: 'Global', label: 'Endurance Coverage' },
 ];
 
 export default function Hero() {
   return (
     <section className="hero">
       <div className="hero-content">
-        <div className="hero-badge">Est. 1995 · Reborn for a New Era</div>
+        <div className="hero-badge">Endurance Riding News · Stories · Events</div>
         <h1>
-          The World's Premier<br />
-          <span className="hero-highlight">Endurance Sports</span><br />
-          Community
+          Endurance.Net<br />
+          <span className="hero-highlight">Next Generation</span><br />
+          Archive & Newsroom
         </h1>
         <p className="hero-subtitle">
-          From ultramarathons to IRONMAN triathlons, cycling grand tours to mountain races —
-          EnduranceNet is your home for news, events, athletes, and results from the world's
-          most demanding sports.
+          The modern home for endurance riding current news, featured stories,
+          event coverage, galleries, Ridecamp history, classifieds, and advertiser
+          resources migrated from the legacy PHP site.
         </p>
         <div className="hero-actions">
-          <Link to="/events" className="btn btn-primary">
-            Explore Events <ChevronRight size={18} />
+          <Link to="/news" className="btn btn-primary">
+            Current News <ChevronRight size={18} />
           </Link>
-          <Link to="/news" className="btn btn-outline">
-            Latest News
+          <Link to="/featured-stories" className="btn btn-outline">
+            Featured Stories
           </Link>
         </div>
       </div>
