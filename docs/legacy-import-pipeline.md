@@ -15,6 +15,12 @@ Smoke test:
 python3 scripts/legacy_import.py --reset --max-records 500
 ```
 
+Unit smoke test:
+
+```bash
+python3 scripts/test_legacy_import.py
+```
+
 Full import from the current inventory snapshot:
 
 ```bash
@@ -31,8 +37,19 @@ python3 scripts/legacy_import.py --reset
   metadata.
 - `content_fragments`: imported internal fragment bodies such as
   `indexInternal.html`.
-- `feed_entries`: parsed XML/RSS/Atom entry records where feeds are readable.
+- `feed_entries`: parsed XML/RSS/Atom and OPML outline entry records where
+  feeds are readable.
+- `structured_data_files`: XML/OPML/XSL/XSLT provenance, root tags, and parsed
+  item counts, including files that do not expose feed entries directly.
 - `media_references`: image/audio/video links found inside templates.
+- `gallery_manifests`: gallery/index pages and their discovered media
+  reference counts.
+- `advertiser_records`: advertiser and sponsorship source pages with website
+  and logo-reference hints.
+- `classified_records`: classified/market archive pages with media-reference
+  hints.
+- `ridecamp_messages`: Ridecamp archive pages with message subject, body, and
+  navigation link hints.
 
 Generated outputs:
 
@@ -44,3 +61,7 @@ The importer does not mutate `/Volumes/webstore/endurance.net/` and does not
 write production content tables directly. The staging database is a reviewable
 handoff point for later Postgres loading and domain-specific importers.
 
+Every staging record keeps source path, legacy URL, parser version, import
+batch ID, and checksum when available. Import failures are recorded without
+aborting the batch so coverage reports can compare imported records to the
+source inventory and expose remaining domain backlogs.
