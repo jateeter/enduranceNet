@@ -26,3 +26,8 @@ The published issues are:
 | `019-rss-stream-directory-navigation.md` | https://github.com/jateeter/enduranceNet/issues/45 |
 | `020-rss-entry-cards-and-stream-detail.md` | https://github.com/jateeter/enduranceNet/issues/44 |
 | `021-rss-corpus-search-and-filtering.md` | https://github.com/jateeter/enduranceNet/issues/46 |
+| `022-cms-platform-and-content-model.md` | https://github.com/jateeter/enduranceNet/issues/55 |
+| `023-media-corpus-cms-migration.md` | https://github.com/jateeter/enduranceNet/issues/56 |
+| `024-scheduled-blogger-polling-worker.md` | https://github.com/jateeter/enduranceNet/issues/57 |
+| `025-archival-rss-corpus-import.md` | https://github.com/jateeter/enduranceNet/issues/58 |
+| `026-production-visual-and-media-regression.md` | https://github.com/jateeter/enduranceNet/issues/59 |
