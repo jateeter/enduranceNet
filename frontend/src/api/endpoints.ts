@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { Event, HomepageAsset, LegacyRedirect, News, Athlete, Result, StreamEntry, StreamSource } from '../types';
+import type { Event, HomepageAsset, LegacyRedirect, News, Athlete, Result, StreamEntry, StreamEntrySearchResult, StreamSource } from '../types';
 
 export const fetchEvents = (): Promise<Event[]> =>
   apiClient.get<Event[]>('/events').then((r) => r.data);
@@ -27,6 +27,9 @@ export const fetchStreamSource = (slug: string): Promise<StreamSource> =>
 
 export const fetchStreamEntries = (): Promise<StreamEntry[]> =>
   apiClient.get<StreamEntry[]>('/stream-entries').then((r) => r.data);
+
+export const searchStreamEntries = (params: Record<string, string>): Promise<StreamEntrySearchResult[]> =>
+  apiClient.get<StreamEntrySearchResult[]>('/stream-entries/search', { params }).then((r) => r.data);
 
 export const fetchStreamEntriesForSource = (slug: string): Promise<StreamEntry[]> =>
   apiClient.get<StreamEntry[]>(`/streams/${slug}/entries`).then((r) => r.data);

@@ -45,3 +45,12 @@ case class StreamEntry(
 object StreamEntry {
   implicit val format: OFormat[StreamEntry] = Json.format[StreamEntry]
 }
+
+case class StreamEntrySearchResult(
+  entry: StreamEntry,
+  source: StreamSource
+)
+
+object StreamEntrySearchResult {
+  implicit val format: OFormat[StreamEntrySearchResult] = Json.format[StreamEntrySearchResult]
+}

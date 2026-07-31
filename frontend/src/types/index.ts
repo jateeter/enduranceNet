@@ -76,6 +76,11 @@ export interface StreamEntry {
   checksumSha256?: string;
 }
 
+export interface StreamEntrySearchResult {
+  entry: StreamEntry;
+  source: StreamSource;
+}
+
 export interface Athlete {
   id: number;
   name: string;

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, ExternalLink, Radio, Rss } from 'lucide-react';
+import { BookOpen, ExternalLink, Radio, Rss, Search } from 'lucide-react';
 import ErrorMessage from '../components/ErrorMessage';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { fetchStreamSources } from '../api/endpoints';
@@ -97,6 +97,12 @@ export default function StreamsPage() {
           <span>validated</span>
         </div>
       </header>
+      <div className="stream-directory-actions">
+        <Link to="/streams/search">
+          <Search size={15} />
+          Search corpus
+        </Link>
+      </div>
 
       {loading && <LoadingSpinner />}
       {error && <ErrorMessage message={error} />}

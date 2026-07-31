@@ -2,14 +2,11 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, Radio, Rss } from 'lucide-react';
 import ErrorMessage from '../components/ErrorMessage';
 import LoadingSpinner from '../components/LoadingSpinner';
+import StreamEntryCard from '../components/StreamEntryCard';
 import { fetchStreamEntriesForSource, fetchStreamSource } from '../api/endpoints';
 import { useApi } from '../hooks/useApi';
-import type { StreamEntry, StreamSource } from '../types';
-import { dateLabel, hostLabel, htmlToText } from '../utils/streamFormat';
-
-function sourceRssUrl(stream: StreamSource) {
-  return stream.canonicalRssUrl ?? stream.remoteUrl;
-}
+import type { StreamSource } from '../types';
+import { dateLabel, hostLabel, sourceRssUrl } from '../utils/streamFormat';
 
 function StreamActionLinks({ stream }: { stream: StreamSource }) {
   const rssUrl = sourceRssUrl(stream);
@@ -35,39 +32,6 @@ function StreamActionLinks({ stream }: { stream: StreamSource }) {
         </a>
       )}
     </div>
-  );
-}
-
-function StreamEntryCard({ entry, stream }: { entry: StreamEntry; stream: StreamSource }) {
-  const summary = htmlToText(entry.summaryHtml ?? entry.contentHtml) || 'No imported summary is available for this entry yet.';
-  const entryUrl = entry.alternateUrl ?? entry.relatedUrl ?? stream.legacyUrl ?? sourceRssUrl(stream);
-
-  return (
-    <article className="stream-entry-card" tabIndex={0}>
-      <header>
-        <span>{entry.author ?? stream.title}</span>
-        <time>{dateLabel(entry.publishedAt ?? entry.updatedAt)}</time>
-      </header>
-      <h2>
-        {entryUrl ? (
-          <a href={entryUrl} target="_blank" rel="noreferrer" title={summary}>
-            {entry.title}
-          </a>
-        ) : (
-          entry.title
-        )}
-      </h2>
-      <p>{summary}</p>
-      <footer>
-        <span>{stream.title}</span>
-        {entryUrl && (
-          <a href={entryUrl} target="_blank" rel="noreferrer">
-            Read story
-            <ExternalLink size={14} />
-          </a>
-        )}
-      </footer>
-    </article>
   );
 }
 
@@ -141,7 +105,7 @@ export default function StreamDetailPage() {
           {entries && entries.length > 0 ? (
             <section className="stream-entry-list" aria-label={`${stream.title} entries`}>
               {entries.map((entry) => (
-                <StreamEntryCard key={entry.id} entry={entry} stream={stream} />
+                <StreamEntryCard key={entry.id} entry={entry} stream={stream} showStreamTitle={false} />
               ))}
             </section>
           ) : (
