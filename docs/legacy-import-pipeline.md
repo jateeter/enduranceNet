@@ -39,6 +39,14 @@ python3 scripts/legacy_import.py --reset
   `indexInternal.html`.
 - `feed_entries`: parsed XML/RSS/Atom and OPML outline entry records where
   feeds are readable.
+- `stream_sources`: Blogger/RSS/Atom/OPML source-level registry records with
+  local cache paths, remote feed URLs where discoverable, default presentation
+  modes, active/archive hints, checksums, and parser provenance.
+- `stream_snapshots`: raw feed snapshot metadata, including feed ID, title,
+  self/alternate/next links, item count, and checksum.
+- `stream_entries_v2`: richer canonical stream entries with provider IDs,
+  Blogger/RSS links, author, timestamps, summary/content HTML, and parser
+  provenance.
 - `structured_data_files`: XML/OPML/XSL/XSLT provenance, root tags, and parsed
   item counts, including files that do not expose feed entries directly.
 - `media_references`: image/audio/video links found inside templates.

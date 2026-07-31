@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Iterable
 
 
-PARSER_VERSION = "legacy-import-v1"
+PARSER_VERSION = "legacy-import-v2"
 MAX_TEXT_BYTES = 512 * 1024
 MAX_DOMAIN_TEXT_BYTES = 64 * 1024
 MEDIA_EXTENSIONS = {
@@ -215,6 +215,54 @@ def init_db(config: ImportConfig) -> sqlite3.Connection:
           import_batch_id TEXT NOT NULL,
           parser_version TEXT NOT NULL,
           PRIMARY KEY (source_path, entry_index)
+        );
+
+        CREATE TABLE IF NOT EXISTS stream_sources (
+          source_path TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          provider TEXT NOT NULL,
+          feed_format TEXT NOT NULL,
+          remote_url TEXT,
+          local_cache_path TEXT NOT NULL,
+          legacy_url TEXT NOT NULL,
+          default_presentation TEXT NOT NULL,
+          active INTEGER NOT NULL,
+          checksum_sha256 TEXT,
+          import_batch_id TEXT NOT NULL,
+          parser_version TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS stream_snapshots (
+          source_path TEXT PRIMARY KEY,
+          root_tag TEXT NOT NULL,
+          feed_id TEXT,
+          title TEXT NOT NULL,
+          self_url TEXT,
+          alternate_url TEXT,
+          next_url TEXT,
+          entry_count INTEGER NOT NULL,
+          checksum_sha256 TEXT,
+          import_batch_id TEXT NOT NULL,
+          parser_version TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS stream_entries_v2 (
+          source_path TEXT NOT NULL,
+          provider_entry_id TEXT NOT NULL,
+          entry_index INTEGER NOT NULL,
+          title TEXT NOT NULL,
+          summary_html TEXT,
+          content_html TEXT,
+          author TEXT,
+          published_at TEXT,
+          updated_at TEXT,
+          alternate_url TEXT,
+          self_url TEXT,
+          related_url TEXT,
+          comments_url TEXT,
+          import_batch_id TEXT NOT NULL,
+          parser_version TEXT NOT NULL,
+          PRIMARY KEY (source_path, provider_entry_id)
         );
 
         CREATE TABLE IF NOT EXISTS structured_data_files (
@@ -519,6 +567,23 @@ def link_of(element: ET.Element) -> str:
     return ""
 
 
+def child_elements(element: ET.Element, child_name: str) -> list[ET.Element]:
+    return [child for child in list(element) if local_name(child.tag) == child_name]
+
+
+def atom_link_map(element: ET.Element) -> dict[str, str]:
+    links: dict[str, str] = {}
+    for child in child_elements(element, "link"):
+        rel = child.attrib.get("rel") or "alternate"
+        href = child.attrib.get("href") or (child.text or "")
+        if href and rel not in links:
+            links[rel] = href.strip()
+    text_link = text_of(element, ("link",))
+    if text_link and "alternate" not in links:
+        links["alternate"] = text_link
+    return links
+
+
 def local_name(tag: str) -> str:
     return tag.rsplit("}", 1)[-1].lower()
 
@@ -536,6 +601,225 @@ def opml_outline_elements(root: ET.Element) -> list[ET.Element]:
         if local_name(element.tag) == "outline"
         and (element.attrib.get("xmlUrl") or element.attrib.get("htmlUrl") or element.attrib.get("url"))
     ]
+
+
+def feed_title(root: ET.Element, source_path: str) -> str:
+    title = text_of(root, ("title",))
+    if title:
+        return title
+    return title_from_path(source_path)
+
+
+def feed_format(root: ET.Element, source_path: str) -> str:
+    root_name = local_name(root.tag)
+    if root_name == "feed":
+        namespace = root.tag.split("}", 1)[0].lstrip("{") if root.tag.startswith("{") else ""
+        if namespace == "http://purl.org/atom/ns#":
+            return "atom-blogger"
+        return "atom-1.0"
+    if root_name == "rss":
+        version = root.attrib.get("version", "2.0")
+        return f"rss-{version}"
+    if root_name == "opml":
+        return "opml"
+    if root_name == "stylesheet":
+        return "xslt"
+    return Path(source_path).suffix.lower().lstrip(".") or root_name
+
+
+def feed_provider(root: ET.Element, source_path: str) -> str:
+    root_name = local_name(root.tag)
+    if root_name == "opml":
+        return "opml"
+    if root_name == "stylesheet":
+        return "xslt"
+    values = " ".join(
+        value.lower()
+        for value in [text_of(root, ("generator", "id")), source_path]
+        if value
+    )
+    if "blogger" in values or "blogspot" in values or "tag:blogger.com" in values:
+        return "blogger"
+    if root_name == "rss":
+        return "rss"
+    if root_name == "feed":
+        return "atom"
+    return "xml"
+
+
+def default_presentation_for(source_path: str, detected_format: str) -> str:
+    lower = source_path.lower()
+    if detected_format == "opml":
+        return "stream-directory"
+    if detected_format == "xslt":
+        return "xslt-template"
+    if "whereintheworld" in lower:
+        return "popup-channel-card"
+    if "wec" in lower or "event" in lower:
+        return "event-story-list"
+    if detected_format.startswith("rss"):
+        return "rss-list"
+    return "atom-list"
+
+
+def entry_author(entry: ET.Element) -> str:
+    for author in child_elements(entry, "author"):
+        name = text_of(author, ("name",))
+        if name:
+            return name
+    return text_of(entry, ("author", "creator"))
+
+
+def entry_provider_id(entry: ET.Element, source_path: str, index: int) -> str:
+    entry_id = text_of(entry, ("id", "guid"))
+    if entry_id:
+        return entry_id
+    link = link_of(entry)
+    if link:
+        return link
+    return f"{source_path}#{index}"
+
+
+def entry_content(entry: ET.Element) -> str:
+    for name in ("content", "encoded", "description"):
+        value = text_of(entry, (name,))
+        if value:
+            return value
+    return ""
+
+
+def insert_stream_source(
+    inv: sqlite3.Connection,
+    out: sqlite3.Connection,
+    batch_id: str,
+    source_path: str,
+    root: ET.Element,
+    entries: list[ET.Element],
+    outlines: list[ET.Element],
+) -> None:
+    links = atom_link_map(root)
+    detected_format = feed_format(root, source_path)
+    provider = feed_provider(root, source_path)
+    title = feed_title(root, source_path)
+    remote_url = links.get("self") or links.get("alternate")
+    checksum = one(inv, "SELECT checksum_sha256 FROM files WHERE path = ?", (source_path,))
+    out.execute(
+        """
+        INSERT OR REPLACE INTO stream_sources (
+          source_path, title, provider, feed_format, remote_url,
+          local_cache_path, legacy_url, default_presentation, active,
+          checksum_sha256, import_batch_id, parser_version
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            source_path,
+            title,
+            provider,
+            detected_format,
+            remote_url,
+            source_path,
+            normalize_legacy_url(source_path),
+            default_presentation_for(source_path, detected_format),
+            1 if provider in {"blogger", "rss", "atom"} and bool(remote_url) else 0,
+            checksum,
+            batch_id,
+            PARSER_VERSION,
+        ),
+    )
+    out.execute(
+        """
+        INSERT OR REPLACE INTO stream_snapshots (
+          source_path, root_tag, feed_id, title, self_url, alternate_url,
+          next_url, entry_count, checksum_sha256, import_batch_id, parser_version
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            source_path,
+            local_name(root.tag),
+            text_of(root, ("id",)),
+            title,
+            links.get("self"),
+            links.get("alternate"),
+            links.get("next"),
+            len(entries) if entries else len(outlines),
+            checksum,
+            batch_id,
+            PARSER_VERSION,
+        ),
+    )
+
+
+def insert_stream_entry(
+    out: sqlite3.Connection,
+    batch_id: str,
+    source_path: str,
+    index: int,
+    entry: ET.Element,
+) -> None:
+    links = atom_link_map(entry)
+    out.execute(
+        """
+        INSERT OR REPLACE INTO stream_entries_v2 (
+          source_path, provider_entry_id, entry_index, title, summary_html,
+          content_html, author, published_at, updated_at, alternate_url,
+          self_url, related_url, comments_url, import_batch_id, parser_version
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            source_path,
+            entry_provider_id(entry, source_path, index),
+            index,
+            text_of(entry, ("title",)) or title_from_path(source_path),
+            text_of(entry, ("summary", "description")),
+            entry_content(entry),
+            entry_author(entry),
+            text_of(entry, ("published", "pubDate")),
+            text_of(entry, ("updated",)),
+            links.get("alternate"),
+            links.get("self"),
+            links.get("related"),
+            links.get("replies"),
+            batch_id,
+            PARSER_VERSION,
+        ),
+    )
+
+
+def insert_stream_outline(
+    out: sqlite3.Connection,
+    batch_id: str,
+    source_path: str,
+    index: int,
+    outline: ET.Element,
+) -> None:
+    link = outline.attrib.get("xmlUrl") or outline.attrib.get("htmlUrl") or outline.attrib.get("url") or ""
+    title = outline.attrib.get("text") or outline.attrib.get("title") or title_from_path(link or source_path)
+    out.execute(
+        """
+        INSERT OR REPLACE INTO stream_entries_v2 (
+          source_path, provider_entry_id, entry_index, title, summary_html,
+          content_html, author, published_at, updated_at, alternate_url,
+          self_url, related_url, comments_url, import_batch_id, parser_version
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            source_path,
+            link or f"{source_path}#{index}",
+            index,
+            title,
+            outline.attrib.get("description") or "",
+            "",
+            "",
+            "",
+            "",
+            link,
+            outline.attrib.get("xmlUrl") or "",
+            "",
+            "",
+            batch_id,
+            PARSER_VERSION,
+        ),
+    )
 
 
 def import_feeds(inv: sqlite3.Connection, out: sqlite3.Connection, config: ImportConfig, batch_id: str) -> int:
@@ -562,6 +846,7 @@ def import_feeds(inv: sqlite3.Connection, out: sqlite3.Connection, config: Impor
             entries = feed_entry_elements(root)
             outlines = opml_outline_elements(root)
             item_count = len(entries) if entries else len(outlines)
+            insert_stream_source(inv, out, batch_id, source_path, root, entries, outlines)
             out.execute(
                 """
                 INSERT OR REPLACE INTO structured_data_files (
@@ -582,6 +867,7 @@ def import_feeds(inv: sqlite3.Connection, out: sqlite3.Connection, config: Impor
                 ),
             )
             for index, entry in enumerate(entries):
+                insert_stream_entry(out, batch_id, source_path, index, entry)
                 out.execute(
                     """
                     INSERT OR REPLACE INTO feed_entries (
@@ -603,6 +889,7 @@ def import_feeds(inv: sqlite3.Connection, out: sqlite3.Connection, config: Impor
                 )
                 imported += 1
             for index, outline in enumerate(outlines):
+                insert_stream_outline(out, batch_id, source_path, index, outline)
                 out.execute(
                     """
                     INSERT OR REPLACE INTO feed_entries (
@@ -845,6 +1132,9 @@ def write_reports(out: sqlite3.Connection, config: ImportConfig, batch_id: str) 
         "template_pages": one(out, "SELECT COUNT(*) FROM template_pages"),
         "content_fragments": one(out, "SELECT COUNT(*) FROM content_fragments"),
         "feed_entries": one(out, "SELECT COUNT(*) FROM feed_entries"),
+        "stream_sources": one(out, "SELECT COUNT(*) FROM stream_sources"),
+        "stream_snapshots": one(out, "SELECT COUNT(*) FROM stream_snapshots"),
+        "stream_entries_v2": one(out, "SELECT COUNT(*) FROM stream_entries_v2"),
         "structured_data_files": one(out, "SELECT COUNT(*) FROM structured_data_files"),
         "media_references": one(out, "SELECT COUNT(*) FROM media_references"),
         "gallery_manifests": one(out, "SELECT COUNT(*) FROM gallery_manifests"),
