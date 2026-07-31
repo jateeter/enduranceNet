@@ -13,12 +13,19 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LEGACY_IMPORT_PATH = REPO_ROOT / "scripts" / "legacy_import.py"
+POLL_WORKER_PATH = REPO_ROOT / "scripts" / "poll_active_streams.py"
 
 spec = importlib.util.spec_from_file_location("legacy_import", LEGACY_IMPORT_PATH)
 legacy_import = importlib.util.module_from_spec(spec)
 assert spec.loader is not None
 sys.modules["legacy_import"] = legacy_import
 spec.loader.exec_module(legacy_import)
+
+poll_spec = importlib.util.spec_from_file_location("poll_active_streams", POLL_WORKER_PATH)
+poll_active_streams = importlib.util.module_from_spec(poll_spec)
+assert poll_spec.loader is not None
+sys.modules["poll_active_streams"] = poll_active_streams
+poll_spec.loader.exec_module(poll_active_streams)
 
 
 FILE_COLUMNS = """
@@ -357,6 +364,68 @@ class LegacyImportTest(unittest.TestCase):
         self.assertEqual('"poll-etag"', poll_target[2])
         self.assertEqual("Fri, 31 Jul 2026 00:00:00 GMT", poll_target[3])
         self.assertIsNotNone(poll_target[4])
+
+    def test_scheduled_poll_worker_writes_operator_report(self) -> None:
+        self._run_import(reset=True)
+
+        polled_body = """
+        <feed xmlns='http://www.w3.org/2005/Atom'>
+          <id>tag:blogger.com,1999:blog-7290526037745122441</id>
+          <title>Where in the World</title>
+          <generator>Blogger</generator>
+          <link rel='self' href='https://www.blogger.com/feeds/7290526037745122441/posts/default?alt=rss' />
+          <entry>
+            <id>tag:blogger.com,1999:blog-7290526037745122441.post-456</id>
+            <title>Scheduled Poll Dispatch</title>
+            <updated>2026-07-31T01:00:00Z</updated>
+            <link rel='alternate' href='http://feeds.endurance.net/whereintheworld/scheduled.html' />
+          </entry>
+        </feed>
+        """
+
+        def fake_fetcher(url: str, etag: object = None, last_modified: object = None) -> object:
+            return legacy_import.FetchResult(
+                url=url,
+                status=200,
+                body=polled_body,
+                etag='"worker-etag"',
+                last_modified="Fri, 31 Jul 2026 01:00:00 GMT",
+            )
+
+        config = poll_active_streams.PollWorkerConfig(
+            staging_db=self.output_dir / "legacy-import.sqlite",
+            output_dir=self.output_dir,
+            fail_on_target_errors=True,
+        )
+        report = poll_active_streams.run_poll(config, fake_fetcher)
+
+        self.assertEqual(1, report["ready_targets_before"])
+        self.assertEqual(0, report["failures"])
+        self.assertEqual(1, report["imported_entries"])
+        self.assertEqual(1, report["raw_snapshots_added"])
+        self.assertEqual(1, len(report["remote_snapshots"]))
+        self.assertEqual(200, report["remote_snapshots"][0]["http_status"])
+        self.assertTrue((self.output_dir / "stream-poll-report.json").exists())
+        self.assertEqual("", (self.output_dir / "stream-poll-failures.jsonl").read_text(encoding="utf-8"))
+
+    def test_scheduled_poll_worker_reports_failed_targets(self) -> None:
+        self._run_import(reset=True)
+
+        def failing_fetcher(url: str, etag: object = None, last_modified: object = None) -> object:
+            raise RuntimeError("feed unavailable")
+
+        config = poll_active_streams.PollWorkerConfig(
+            staging_db=self.output_dir / "legacy-import.sqlite",
+            output_dir=self.output_dir,
+            fail_on_target_errors=True,
+        )
+        report = poll_active_streams.run_poll(config, failing_fetcher)
+
+        self.assertEqual(1, report["failures"])
+        self.assertEqual(report["blocked_targets_before"] + 1, report["blocked_targets_after"])
+        self.assertIn("RuntimeError: feed unavailable", report["target_statuses"][0]["blocker"])
+        failures = (self.output_dir / "stream-poll-failures.jsonl").read_text(encoding="utf-8")
+        self.assertIn("feed unavailable", failures)
 
 
 if __name__ == "__main__":
