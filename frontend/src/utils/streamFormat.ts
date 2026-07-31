@@ -1,4 +1,5 @@
 import type { StreamSource } from '../types';
+import { rewriteLegacyMediaReferences } from './legacyAssets';
 
 export function sourceRssUrl(stream: StreamSource) {
   return stream.canonicalRssUrl ?? stream.remoteUrl;
@@ -30,10 +31,6 @@ export function htmlToText(value?: string) {
     .replace(/&#39;/g, "'")
     .replace(/\s+/g, ' ')
     .trim();
-}
-
-export function rewriteLegacyMediaReferences(value: string) {
-  return value.replace(/https?:\/\/(?:www\.)?endurance\.net(\/[^"'\s<>)]*)/gi, '/legacy-media$1');
 }
 
 export function sanitizeStreamHtml(value?: string) {
