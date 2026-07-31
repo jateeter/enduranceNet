@@ -165,6 +165,10 @@ class LegacyImportTest(unittest.TestCase):
             conn.close()
 
     def _run_import(self, reset: bool = False) -> None:
+        extra_args = ["--reset"] if reset else []
+        self._run_import_args(*extra_args)
+
+    def _run_import_args(self, *extra_args: str) -> None:
         args = [
             "--inventory-db",
             str(self.inventory_db),
@@ -172,9 +176,8 @@ class LegacyImportTest(unittest.TestCase):
             str(self.source_root),
             "--output-dir",
             str(self.output_dir),
+            *extra_args,
         ]
-        if reset:
-            args.append("--reset")
         self.assertEqual(0, legacy_import.main(args))
 
     def _count(self, table: str) -> int:
@@ -196,6 +199,8 @@ class LegacyImportTest(unittest.TestCase):
         self.assertEqual(4, self._count("stream_raw_snapshots"))
         self.assertEqual(4, self._count("stream_poll_targets"))
         self.assertEqual(3, self._count("stream_entries_v2"))
+        self.assertEqual(3, self._count("stream_entries_canonical"))
+        self.assertTrue((self.output_dir / "archival-stream-coverage.json").exists())
         self.assertEqual(4, self._count("structured_data_files"))
         self.assertEqual(1, self._count("advertiser_records"))
         self.assertEqual(1, self._count("classified_records"))
@@ -303,6 +308,19 @@ class LegacyImportTest(unittest.TestCase):
             stream_media,
         )
 
+    def test_feeds_only_import_refreshes_archival_stream_corpus(self) -> None:
+        self._run_import_args("--reset", "--feeds-only")
+
+        self.assertEqual(0, self._count("legacy_source_files"))
+        self.assertEqual(0, self._count("template_pages"))
+        self.assertEqual(0, self._count("media_assets"))
+        self.assertEqual(3, self._count("feed_entries"))
+        self.assertEqual(4, self._count("stream_sources"))
+        self.assertEqual(4, self._count("stream_snapshots"))
+        self.assertEqual(4, self._count("stream_poll_targets"))
+        self.assertEqual(3, self._count("stream_entries_v2"))
+        self.assertEqual(3, self._count("stream_entries_canonical"))
+
     def test_active_stream_polling_is_idempotent_and_updates_snapshot_metadata(self) -> None:
         self._run_import(reset=True)
 
@@ -364,6 +382,69 @@ class LegacyImportTest(unittest.TestCase):
         self.assertEqual('"poll-etag"', poll_target[2])
         self.assertEqual("Fri, 31 Jul 2026 00:00:00 GMT", poll_target[3])
         self.assertIsNotNone(poll_target[4])
+
+    def test_archival_snapshot_variants_dedupe_to_canonical_entries(self) -> None:
+        duplicate_path = "channels/whereintheworld/rss.xml"
+        self._write_file(
+            duplicate_path,
+            """
+            <feed xmlns='http://www.w3.org/2005/Atom'>
+              <id>tag:blogger.com,1999:blog-7290526037745122441</id>
+              <title>Where in the World Duplicate Cache</title>
+              <generator>Blogger</generator>
+              <link rel='self' href='https://www.blogger.com/feeds/7290526037745122441/posts/default?alt=rss' />
+              <entry>
+                <id>tag:blogger.com,1999:blog-7290526037745122441.post-123</id>
+                <title>Travel Dispatch</title>
+                <published>2026-07-29T00:00:00Z</published>
+                <updated>2026-07-30T00:00:00Z</updated>
+                <author><name>Steph Teeter</name></author>
+                <summary>Duplicate local snapshot of the same Blogger post.</summary>
+                <link rel='alternate' href='http://feeds.endurance.net/whereintheworld/travel-dispatch.html' />
+                <link rel='self' href='https://www.blogger.com/feeds/7290526037745122441/posts/default/123' />
+              </entry>
+            </feed>
+            """,
+        )
+        with sqlite3.connect(self.inventory_db) as conn:
+            self._insert_file(conn, duplicate_path, "data_file", "application/xml")
+            conn.commit()
+
+        self._run_import(reset=True)
+
+        with sqlite3.connect(self.output_dir / "legacy-import.sqlite") as conn:
+            source_specific_count = conn.execute(
+                """
+                SELECT COUNT(*)
+                FROM stream_entries_v2
+                WHERE provider_entry_id = 'tag:blogger.com,1999:blog-7290526037745122441.post-123'
+                """
+            ).fetchone()[0]
+            canonical = conn.execute(
+                """
+                SELECT title, source_count
+                FROM stream_entries_canonical
+                WHERE canonical_entry_id = 'tag:blogger.com,1999:blog-7290526037745122441.post-123'
+                """
+            ).fetchone()
+            source_paths = [
+                row[0]
+                for row in conn.execute(
+                    """
+                    SELECT source_path
+                    FROM stream_entry_sources
+                    WHERE canonical_entry_id = 'tag:blogger.com,1999:blog-7290526037745122441.post-123'
+                    ORDER BY source_path
+                    """
+                ).fetchall()
+            ]
+
+        self.assertEqual(2, source_specific_count)
+        self.assertEqual(("Travel Dispatch", 2), canonical)
+        self.assertEqual(
+            ["channels/whereintheworld/atom.xml", "channels/whereintheworld/rss.xml"],
+            source_paths,
+        )
 
     def test_scheduled_poll_worker_writes_operator_report(self) -> None:
         self._run_import(reset=True)

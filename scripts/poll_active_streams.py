@@ -108,6 +108,7 @@ def run_poll(
             max_records=None,
             reset=False,
             poll_active=True,
+            feeds_only=True,
         )
         batch_id = legacy_import.start_batch(conn, batch_config)
         started_at = legacy_import.utc_now()

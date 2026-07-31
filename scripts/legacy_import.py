@@ -48,6 +48,7 @@ class ImportConfig:
     max_records: int | None
     reset: bool
     poll_active: bool
+    feeds_only: bool
 
 
 @dataclass(frozen=True)
@@ -316,6 +317,32 @@ def init_db(config: ImportConfig) -> sqlite3.Connection:
           import_batch_id TEXT NOT NULL,
           parser_version TEXT NOT NULL,
           PRIMARY KEY (source_path, provider_entry_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS stream_entries_canonical (
+          canonical_entry_id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          summary_html TEXT,
+          content_html TEXT,
+          author TEXT,
+          published_at TEXT,
+          updated_at TEXT,
+          alternate_url TEXT,
+          self_url TEXT,
+          first_source_path TEXT NOT NULL,
+          source_count INTEGER NOT NULL,
+          first_import_batch_id TEXT NOT NULL,
+          last_import_batch_id TEXT NOT NULL,
+          parser_version TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS stream_entry_sources (
+          canonical_entry_id TEXT NOT NULL,
+          source_path TEXT NOT NULL,
+          provider_entry_id TEXT NOT NULL,
+          import_batch_id TEXT NOT NULL,
+          parser_version TEXT NOT NULL,
+          PRIMARY KEY (canonical_entry_id, source_path, provider_entry_id)
         );
 
         CREATE TABLE IF NOT EXISTS structured_data_files (
@@ -1107,6 +1134,21 @@ def insert_stream_entry(
             PARSER_VERSION,
         ),
     )
+    insert_canonical_stream_entry(
+        out,
+        batch_id,
+        provider_entry_id,
+        source_path,
+        provider_entry_id,
+        title,
+        summary_html,
+        content_html,
+        entry_author(entry),
+        text_of(entry, ("published", "pubDate")),
+        text_of(entry, ("updated",)),
+        links.get("alternate"),
+        links.get("self"),
+    )
     record_stream_media_references(
         inv,
         out,
@@ -1153,6 +1195,86 @@ def insert_stream_outline(
             batch_id,
             PARSER_VERSION,
         ),
+    )
+    insert_canonical_stream_entry(
+        out,
+        batch_id,
+        link or f"{source_path}#{index}",
+        source_path,
+        link or f"{source_path}#{index}",
+        title,
+        outline.attrib.get("description") or "",
+        "",
+        "",
+        "",
+        "",
+        link,
+        outline.attrib.get("xmlUrl") or "",
+    )
+
+
+def insert_canonical_stream_entry(
+    out: sqlite3.Connection,
+    batch_id: str,
+    canonical_entry_id: str,
+    source_path: str,
+    provider_entry_id: str,
+    title: str,
+    summary_html: str,
+    content_html: str,
+    author: str,
+    published_at: str,
+    updated_at: str,
+    alternate_url: str | None,
+    self_url: str | None,
+) -> None:
+    out.execute(
+        """
+        INSERT OR IGNORE INTO stream_entries_canonical (
+          canonical_entry_id, title, summary_html, content_html, author,
+          published_at, updated_at, alternate_url, self_url, first_source_path,
+          source_count, first_import_batch_id, last_import_batch_id,
+          parser_version
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+        """,
+        (
+            canonical_entry_id,
+            title,
+            summary_html,
+            content_html,
+            author,
+            published_at,
+            updated_at,
+            alternate_url,
+            self_url,
+            source_path,
+            batch_id,
+            batch_id,
+            PARSER_VERSION,
+        ),
+    )
+    out.execute(
+        """
+        INSERT OR IGNORE INTO stream_entry_sources (
+          canonical_entry_id, source_path, provider_entry_id,
+          import_batch_id, parser_version
+        ) VALUES (?, ?, ?, ?, ?)
+        """,
+        (canonical_entry_id, source_path, provider_entry_id, batch_id, PARSER_VERSION),
+    )
+    out.execute(
+        """
+        UPDATE stream_entries_canonical
+        SET source_count = (
+              SELECT COUNT(*)
+              FROM stream_entry_sources
+              WHERE canonical_entry_id = ?
+            ),
+            last_import_batch_id = ?,
+            parser_version = ?
+        WHERE canonical_entry_id = ?
+        """,
+        (canonical_entry_id, batch_id, PARSER_VERSION, canonical_entry_id),
     )
 
 
@@ -1542,6 +1664,41 @@ def import_ridecamp_messages(inv: sqlite3.Connection, out: sqlite3.Connection, c
 
 
 def write_reports(out: sqlite3.Connection, config: ImportConfig, batch_id: str) -> None:
+    archival_stream_coverage = rows(
+        out,
+        """
+        SELECT
+          source.source_path,
+          source.title,
+          source.provider,
+          source.feed_format,
+          source.remote_url,
+          source.local_cache_path,
+          source.legacy_url,
+          source.default_presentation,
+          source.active,
+          target.poll_status,
+          target.blocker,
+          COALESCE(source_entries.entry_count, 0) AS source_entry_count,
+          COALESCE(canonical_entries.entry_count, 0) AS canonical_entry_count
+        FROM stream_sources source
+        LEFT JOIN stream_poll_targets target
+          ON target.source_path = source.source_path
+        LEFT JOIN (
+          SELECT source_path, COUNT(*) AS entry_count
+          FROM stream_entries_v2
+          GROUP BY source_path
+        ) source_entries
+          ON source_entries.source_path = source.source_path
+        LEFT JOIN (
+          SELECT source_path, COUNT(DISTINCT canonical_entry_id) AS entry_count
+          FROM stream_entry_sources
+          GROUP BY source_path
+        ) canonical_entries
+          ON canonical_entries.source_path = source.source_path
+        ORDER BY source.active DESC, source.title ASC, source.source_path ASC
+        """,
+    )
     summary = {
         "generated_at": utc_now(),
         "batch_id": batch_id,
@@ -1559,6 +1716,11 @@ def write_reports(out: sqlite3.Connection, config: ImportConfig, batch_id: str) 
         "stream_poll_ready": one(out, "SELECT COUNT(*) FROM stream_poll_targets WHERE poll_status = 'ready'"),
         "stream_poll_blocked": one(out, "SELECT COUNT(*) FROM stream_poll_targets WHERE poll_status = 'blocked'"),
         "stream_entries_v2": one(out, "SELECT COUNT(*) FROM stream_entries_v2"),
+        "stream_entries_canonical": one(out, "SELECT COUNT(*) FROM stream_entries_canonical"),
+        "stream_entry_duplicate_sources": one(out, "SELECT COUNT(*) FROM stream_entries_canonical WHERE source_count > 1"),
+        "archival_stream_sources": len(archival_stream_coverage),
+        "archival_stream_sources_with_entries": sum(1 for row in archival_stream_coverage if int(row["source_entry_count"]) > 0),
+        "archival_stream_sources_without_entries": sum(1 for row in archival_stream_coverage if int(row["source_entry_count"]) == 0),
         "structured_data_files": one(out, "SELECT COUNT(*) FROM structured_data_files"),
         "media_references": one(out, "SELECT COUNT(*) FROM media_references"),
         "stream_media_references": one(out, "SELECT COUNT(*) FROM stream_media_references"),
@@ -1595,6 +1757,10 @@ def write_reports(out: sqlite3.Connection, config: ImportConfig, batch_id: str) 
     with (config.output_dir / "import-failures.jsonl").open("w", encoding="utf-8") as handle:
         for failure in failures:
             handle.write(json.dumps(failure, sort_keys=True) + "\n")
+    (config.output_dir / "archival-stream-coverage.json").write_text(
+        json.dumps(archival_stream_coverage, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
 
 
 def parse_args(argv: list[str]) -> ImportConfig:
@@ -1604,6 +1770,7 @@ def parse_args(argv: list[str]) -> ImportConfig:
     parser.add_argument("--output-dir", default="migration/imports")
     parser.add_argument("--max-records", type=int, help="Limit legacy_source_file imports for smoke tests.")
     parser.add_argument("--poll-active", action="store_true", help="Fetch ready active stream poll targets after local import.")
+    parser.add_argument("--feeds-only", action="store_true", help="Only import XML/RSS/Atom/OPML/XSLT stream files.")
     parser.add_argument("--reset", action="store_true", help="Delete existing staging DB first.")
     args = parser.parse_args(argv)
     output_dir = Path(args.output_dir).resolve()
@@ -1615,6 +1782,7 @@ def parse_args(argv: list[str]) -> ImportConfig:
         max_records=args.max_records,
         reset=args.reset,
         poll_active=args.poll_active,
+        feeds_only=args.feeds_only,
     )
 
 
@@ -1631,15 +1799,15 @@ def main(argv: list[str]) -> int:
     out = init_db(config)
     try:
         batch_id = start_batch(out, config)
-        source_count = import_source_files(inv, out, batch_id, config.max_records)
-        media_count = import_media_assets(inv, out, batch_id, config.max_records)
-        template_count = import_templates(inv, out, config, batch_id)
+        source_count = 0 if config.feeds_only else import_source_files(inv, out, batch_id, config.max_records)
+        media_count = 0 if config.feeds_only else import_media_assets(inv, out, batch_id, config.max_records)
+        template_count = 0 if config.feeds_only else import_templates(inv, out, config, batch_id)
         feed_count = import_feeds(inv, out, config, batch_id)
         poll_count = poll_active_streams(out, batch_id) if config.poll_active else 0
-        gallery_count = import_gallery_manifests(inv, out, config, batch_id)
-        advertiser_count = import_advertisers(inv, out, config, batch_id)
-        classified_count = import_classifieds(inv, out, config, batch_id)
-        ridecamp_count = import_ridecamp_messages(inv, out, config, batch_id)
+        gallery_count = 0 if config.feeds_only else import_gallery_manifests(inv, out, config, batch_id)
+        advertiser_count = 0 if config.feeds_only else import_advertisers(inv, out, config, batch_id)
+        classified_count = 0 if config.feeds_only else import_classifieds(inv, out, config, batch_id)
+        ridecamp_count = 0 if config.feeds_only else import_ridecamp_messages(inv, out, config, batch_id)
         failures = int(one(out, "SELECT COUNT(*) FROM import_failures WHERE batch_id = ?", (batch_id,)) or 0)
         records_imported = (
             source_count + media_count + template_count + feed_count
