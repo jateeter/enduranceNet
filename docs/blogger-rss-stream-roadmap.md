@@ -124,7 +124,8 @@ Initial presentation modes:
 - Generate `migration/coverage/xslt-parity-matrix.json` with
   `scripts/xslt_parity_matrix.py` to classify XSLT templates by NextGen
   presentation mode, migration status, output settings, parameters, variables,
-  template matches, and legacy behavior flags.
+  template matches, legacy behavior flags, required fixture roles, and parity
+  checks.
 - Run Playwright visual checks for stream lists, popup cards, event-story lists,
   and single-entry pages.
 - Keep media 404 and permission-denied reporting linked to the future CMS/media
