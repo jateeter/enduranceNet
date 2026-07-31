@@ -1,11 +1,19 @@
 import { chromium } from 'playwright-core';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import {
+  annotateMediaFailure,
+  buildManifestLookup,
+  buildWaiverLookup,
+  readJsonl,
+} from './media-regression-utils.mjs';
 
 const appUrl = process.env.APP_URL ?? process.env.BASE_URL ?? 'http://127.0.0.1:4177';
 const outputDir = path.resolve(process.cwd(), '..', 'output', 'playwright', 'production-regression');
 const chromePath = process.env.CHROME_EXECUTABLE_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const failOnMedia = process.env.ALLOW_MEDIA_FAILURES !== 'true';
+const mediaManifestPath = process.env.MEDIA_MANIFEST ?? process.env.IMAGE_MEDIA_MANIFEST ?? '';
+const mediaWaiversPath = process.env.MEDIA_WAIVERS ?? process.env.MEDIA_WAIVER_FILE ?? '';
 
 const routes = [
   { name: 'home', path: '/' },
@@ -34,6 +42,11 @@ function artifactName(routeName, viewportName) {
 
 await mkdir(outputDir, { recursive: true });
 
+const mediaManifestRows = mediaManifestPath ? await readJsonl(mediaManifestPath) : [];
+const mediaWaiverRows = mediaWaiversPath ? await readJsonl(mediaWaiversPath) : [];
+const manifestLookup = buildManifestLookup(mediaManifestRows, appUrl);
+const waiverLookup = buildWaiverLookup(mediaWaiverRows);
+
 const browser = await chromium.launch({
   executablePath: chromePath,
   headless: true,
@@ -42,8 +55,11 @@ const browser = await chromium.launch({
 const report = {
   generatedAt: new Date().toISOString(),
   appUrl,
+  mediaManifest: mediaManifestPath,
+  mediaWaivers: mediaWaiversPath,
   routes: [],
   failures: [],
+  waivedFailures: [],
   artifacts: [],
 };
 
@@ -93,6 +109,13 @@ try {
           .filter((image) => image.src && (image.naturalWidth === 0 || image.naturalHeight === 0)),
       );
 
+      const context = { appUrl, manifestLookup, waiverLookup };
+      const annotatedMediaFailures = mediaFailures.map((failure) => annotateMediaFailure(failure, context));
+      const annotatedRequestFailures = requestFailures.map((failure) => annotateMediaFailure(failure, context));
+      const annotatedBrokenImages = brokenImages.map((image) =>
+        annotateMediaFailure({ ...image, url: image.src }, context),
+      );
+
       const routeReport = {
         route: route.path,
         name: route.name,
@@ -100,9 +123,9 @@ try {
         url,
         status,
         screenshot: screenshotPath,
-        mediaFailures,
-        requestFailures,
-        brokenImages,
+        mediaFailures: annotatedMediaFailures,
+        requestFailures: annotatedRequestFailures,
+        brokenImages: annotatedBrokenImages,
       };
       report.routes.push(routeReport);
 
@@ -116,23 +139,33 @@ try {
           screenshot: screenshotPath,
         });
       }
-      for (const failure of [...mediaFailures, ...requestFailures]) {
-        report.failures.push({
+      for (const failure of [...annotatedMediaFailures, ...annotatedRequestFailures]) {
+        const reportEntry = {
           type: 'media-request',
           route: route.path,
           viewport: viewport.name,
           ...failure,
           screenshot: screenshotPath,
-        });
+        };
+        if (failure.waived) {
+          report.waivedFailures.push(reportEntry);
+        } else {
+          report.failures.push(reportEntry);
+        }
       }
-      for (const image of brokenImages) {
-        report.failures.push({
+      for (const image of annotatedBrokenImages) {
+        const reportEntry = {
           type: 'broken-img-element',
           route: route.path,
           viewport: viewport.name,
           ...image,
           screenshot: screenshotPath,
-        });
+        };
+        if (image.waived) {
+          report.waivedFailures.push(reportEntry);
+        } else {
+          report.failures.push(reportEntry);
+        }
       }
     }
 

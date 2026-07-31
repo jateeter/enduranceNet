@@ -128,6 +128,12 @@ See `docs/cms-image-review-workflow.md` for the Directus collection model,
 immutable provenance fields, editable review fields, blocker handling, and
 duplicate-image review flow.
 
+## Release Gate
+
+Before release, run the image manifest, media-root checks, and visual/media
+regression gate together. See `docs/image-release-verification.md` for the
+strict command sequence, waiver format, and report artifacts.
+
 ## Waivers
 
 Known intentional gaps can be listed in a JSONL waiver file:

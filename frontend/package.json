@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test:asset-urls": "node scripts/check-legacy-asset-urls.mjs",
+    "test:media-regression": "node scripts/check-media-regression-utils.mjs",
     "visual:streams": "node scripts/stream-presentation-visual-qa.mjs",
     "visual:production": "node scripts/production-visual-media-regression.mjs"
   },
