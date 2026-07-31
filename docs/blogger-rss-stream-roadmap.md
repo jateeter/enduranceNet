@@ -84,6 +84,10 @@ Initial presentation modes:
   `merri/MerriTravels.xml`, `2006WEC/wecnews_atom.xml`, and representative RSS
   files.
 - Golden-test XSLT translations against legacy transform output.
+- Generate `migration/coverage/xslt-parity-matrix.json` with
+  `scripts/xslt_parity_matrix.py` to classify XSLT templates by NextGen
+  presentation mode, migration status, output settings, parameters, variables,
+  template matches, and legacy behavior flags.
 - Run Playwright visual checks for stream lists, popup cards, event-story lists,
   and single-entry pages.
 - Keep media 404 and permission-denied reporting linked to the future CMS/media
