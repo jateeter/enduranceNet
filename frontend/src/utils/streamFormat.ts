@@ -22,7 +22,7 @@ export function hostLabel(value?: string) {
 
 export function htmlToText(value?: string) {
   if (!value) return '';
-  return value
+  return sanitizeStreamHtml(value)
     .replace(/<[^>]*>/g, ' ')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
@@ -30,4 +30,16 @@ export function htmlToText(value?: string) {
     .replace(/&#39;/g, "'")
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+export function rewriteLegacyMediaReferences(value: string) {
+  return value.replace(/https?:\/\/(?:www\.)?endurance\.net(\/[^"'\s<>)]*)/gi, '/legacy-media$1');
+}
+
+export function sanitizeStreamHtml(value?: string) {
+  if (!value) return '';
+  return rewriteLegacyMediaReferences(value)
+    .replace(/<\s*(script|style|iframe|object|embed)[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+    .replace(/\son[a-z]+\s*=\s*(['"]).*?\1/gi, '')
+    .replace(/\s(?:href|src)\s*=\s*(['"])\s*javascript:[\s\S]*?\1/gi, '');
 }

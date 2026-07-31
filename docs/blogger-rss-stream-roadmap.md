@@ -113,6 +113,8 @@ Initial presentation modes:
 15. Populate `stream_media_references` from imported entry HTML so legacy media
     paths can render through `/legacy-media/...` now and receive CMS asset IDs
     later.
+16. Apply React presentation-mode classes from `defaultPresentation` and keep
+    imported stream summaries sanitized before card rendering.
 
 ## Verification
 
