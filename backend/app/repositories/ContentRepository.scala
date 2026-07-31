@@ -1,14 +1,15 @@
 package repositories
 
-import models.{Event, HomepageAsset, LegacyRedirect, News, StreamEntry, StreamSource}
+import models.{Event, HomepageAsset, LegacyRedirect, News, StreamEntry, StreamEntrySearchResult, StreamSource}
 import play.api.db.slick.DatabaseConfigProvider
 import slick.jdbc.JdbcProfile
 
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
 @Singleton
-class ContentRepository @Inject()(databaseConfigProvider: DatabaseConfigProvider) {
+class ContentRepository @Inject()(databaseConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext) {
   private val dbConfig = databaseConfigProvider.get[JdbcProfile]
 
   import dbConfig._
@@ -149,5 +150,53 @@ class ContentRepository @Inject()(databaseConfigProvider: DatabaseConfigProvider
     } yield entry
 
     db.run(query.sortBy(entry => (entry.publishedAt.desc.nullsLast, entry.id.desc)).result)
+  }
+
+  def searchStreamEntries(
+    q: Option[String],
+    group: Option[String],
+    active: Option[Boolean],
+    year: Option[String]
+  ): Future[Seq[StreamEntrySearchResult]] = {
+    val query = for {
+      entry <- streamEntries
+      source <- streamSources if entry.sourceId === source.id
+    } yield (entry, source)
+
+    db.run(query.sortBy { case (entry, _) => (entry.publishedAt.desc.nullsLast, entry.id.desc) }.result).map { rows =>
+      val normalizedQuery = q.map(_.trim.toLowerCase).filter(_.nonEmpty)
+      val normalizedGroup = group.map(_.trim).filter(_.nonEmpty)
+      val normalizedYear = year.map(_.trim).filter(_.matches("\\d{4}"))
+
+      rows
+        .map { case (entry, source) => StreamEntrySearchResult(entry, source) }
+        .filter { result =>
+          normalizedGroup.forall(expected => result.source.streamGroup.contains(expected)) &&
+            active.forall(expected => result.source.active == expected) &&
+            normalizedYear.forall(expected => entryYear(result.entry).contains(expected)) &&
+            normalizedQuery.forall(expected => searchHaystack(result).contains(expected))
+        }
+    }
+  }
+
+  private def entryYear(entry: StreamEntry): Option[String] =
+    entry.publishedAt.orElse(entry.updatedAt).filter(_.length >= 4).map(_.take(4))
+
+  private def searchHaystack(result: StreamEntrySearchResult): String = {
+    val entry = result.entry
+    val source = result.source
+    Seq(
+      Some(entry.title),
+      entry.summaryHtml,
+      entry.contentHtml,
+      entry.author,
+      Some(source.slug),
+      Some(source.title),
+      source.streamGroup,
+      source.localCachePath,
+      source.legacyUrl,
+      source.canonicalRssUrl,
+      source.notes
+    ).flatten.mkString(" ").toLowerCase
   }
 }

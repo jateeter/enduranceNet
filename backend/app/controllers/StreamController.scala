@@ -26,6 +26,21 @@ class StreamController @Inject()(val controllerComponents: ControllerComponents,
     contentRepository.listStreamEntries().map(entries => Ok(Json.toJson(entries)))
   }
 
+  def searchEntries(): Action[AnyContent] = Action.async { request =>
+    val active = request.getQueryString("active").flatMap {
+      case "true" | "active"   => Some(true)
+      case "false" | "archive" => Some(false)
+      case _                    => None
+    }
+
+    contentRepository.searchStreamEntries(
+      q = request.getQueryString("q"),
+      group = request.getQueryString("group"),
+      active = active,
+      year = request.getQueryString("year")
+    ).map(results => Ok(Json.toJson(results)))
+  }
+
   def entriesForSource(slug: String): Action[AnyContent] = Action.async {
     contentRepository.getStreamSource(slug).flatMap {
       case Some(_) => contentRepository.listStreamEntriesBySource(slug).map(entries => Ok(Json.toJson(entries)))

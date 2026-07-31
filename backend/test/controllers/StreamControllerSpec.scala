@@ -53,4 +53,28 @@ class StreamControllerSpec extends PlaySpec with GuiceOneAppPerTest with Injecti
       (json \\ "title").map(_.as[String]) must contain("2006 WEC Blogger archive")
     }
   }
+
+  "StreamController#searchEntries" should {
+    "return entry results with source provenance" in {
+      val controller = inject[StreamController]
+      val result = controller.searchEntries().apply(FakeRequest(GET, "/api/stream-entries/search?q=wec"))
+      val json = contentAsJson(result)
+
+      status(result) mustBe OK
+      (json \\ "title").map(_.as[String]) must contain("2006 WEC Blogger archive")
+      (json \\ "slug").map(_.as[String]) must contain("wec-news")
+      (json \\ "streamGroup").map(_.as[String]) must contain("Event & Team Archives")
+    }
+
+    "filter entries by source group and archive status" in {
+      val controller = inject[StreamController]
+      val result = controller.searchEntries().apply(FakeRequest(GET, "/api/stream-entries/search?group=Photo%20%26%20Travel%20Journals&active=false"))
+      val json = contentAsJson(result)
+
+      status(result) mustBe OK
+      (json \\ "slug").map(_.as[String]) must contain("where-in-the-world")
+      (json \\ "slug").map(_.as[String]) must contain("merri-travels")
+      (json \\ "streamGroup").map(_.as[String]).distinct mustBe Seq("Photo & Travel Journals")
+    }
+  }
 }

@@ -1,3 +1,9 @@
+import type { StreamSource } from '../types';
+
+export function sourceRssUrl(stream: StreamSource) {
+  return stream.canonicalRssUrl ?? stream.remoteUrl;
+}
+
 export function dateLabel(value?: string) {
   if (!value) return 'Archive';
   const parsed = new Date(value);
