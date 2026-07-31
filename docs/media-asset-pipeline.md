@@ -18,6 +18,18 @@ directory:
 python3 scripts/media_asset_manifest.py --stage-assets --staging-dir migration/media/legacy-media
 ```
 
+Generate an image-only corpus for the NextGen visual migration:
+
+```bash
+python3 scripts/media_asset_manifest.py --image-only --stage-assets --staging-dir migration/media/images
+```
+
+Run a bounded image-only smoke copy before launching the full corpus operation:
+
+```bash
+python3 scripts/media_asset_manifest.py --image-only --stage-assets --max-assets 100 --staging-dir migration/media/images-smoke
+```
+
 Optional PNG/GIF header probing:
 
 ```bash
@@ -60,6 +72,12 @@ Each manifest entry includes the source path, legacy URL, checksum, MIME type,
 size, scanned timestamp, asset kind, optional PNG/GIF dimensions when probing is
 enabled, a stable CMS asset ID, a durable public URL under `/legacy-media/`, and
 a future CMS URL under `/media/`.
+
+Use `--image-only` when preparing the visual corpus. In that mode manifest
+rows, CMS records, duplicate reports, blocker reports, unreadable reports,
+external reference reports, and staging copies are limited to image assets.
+Use `--max-assets` for bounded smoke runs; `media-summary.json` records the
+asset kind filter, the max asset limit, and whether the manifest is bounded.
 
 ## Runtime URL Contract
 

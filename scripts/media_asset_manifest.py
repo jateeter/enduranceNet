@@ -30,6 +30,8 @@ class MediaManifestConfig:
     probe_dimensions: bool
     staging_dir: Path | None
     stage_assets: bool
+    asset_kinds: frozenset[str] | None
+    max_assets: int | None
 
 
 def rows(conn: sqlite3.Connection, sql: str, params: Iterable[object] = ()) -> list[dict[str, object]]:
@@ -97,6 +99,28 @@ def asset_kind(extension: str, mime_type: str) -> str:
     if lower_ext in {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt"}:
         return "document"
     return "other"
+
+
+def asset_kind_allowed(kind: str, allowed: frozenset[str] | None) -> bool:
+    return allowed is None or kind in allowed
+
+
+def row_asset_kind(row: dict[str, object]) -> str:
+    return asset_kind(str(row["extension"] or ""), str(row["mime_type"] or ""))
+
+
+def reference_asset_kind(
+    referenced_url: str,
+    referenced_path: str | None,
+    normalized_path: str | None,
+    inventory_by_path: dict[str, dict[str, object]],
+) -> str:
+    if normalized_path and normalized_path in inventory_by_path:
+        return row_asset_kind(inventory_by_path[normalized_path])
+    parsed = urlparse(referenced_url)
+    candidate = normalized_path or referenced_path or parsed.path or referenced_url
+    suffix = Path(unquote(candidate.split("?", 1)[0].split("#", 1)[0])).suffix
+    return asset_kind(suffix, "")
 
 
 def image_dimensions(path: Path) -> tuple[int | None, int | None]:
@@ -179,8 +203,11 @@ def generate(config: MediaManifestConfig) -> None:
         inv.close()
 
     inventory_by_path = {str(row["path"]): row for row in file_rows}
-    readable_asset_rows = [row for row in file_rows if row["status"] == "ok"]
-    unreadable_asset_rows = [row for row in file_rows if row["status"] != "ok"]
+    filtered_file_rows = [row for row in file_rows if asset_kind_allowed(row_asset_kind(row), config.asset_kinds)]
+    readable_asset_rows = [row for row in filtered_file_rows if row["status"] == "ok"]
+    unreadable_asset_rows = [row for row in filtered_file_rows if row["status"] != "ok"]
+    if config.max_assets is not None:
+        readable_asset_rows = readable_asset_rows[: config.max_assets]
 
     manifest_rows: list[dict[str, object]] = []
     copy_failures: list[dict[str, object]] = []
@@ -200,7 +227,7 @@ def generate(config: MediaManifestConfig) -> None:
                 "public_url": public_url(source_path),
                 "cms_public_url": cms_public_url(asset_id, source_path),
                 "cms_storage_key": storage_key,
-                "asset_kind": asset_kind(str(row["extension"] or ""), str(row["mime_type"] or "")),
+                "asset_kind": row_asset_kind(row),
                 "mime_type": row["mime_type"] or "",
                 "extension": row["extension"] or "",
                 "size": row["size"],
@@ -241,6 +268,14 @@ def generate(config: MediaManifestConfig) -> None:
             source_path = str(reference["source_path"])
             referenced_url = str(reference["referenced_url"])
             normalized, external = normalized_reference(source_path, referenced_url, reference.get("referenced_path"))
+            ref_kind = reference_asset_kind(
+                referenced_url,
+                str(reference["referenced_path"] or ""),
+                normalized,
+                inventory_by_path,
+            )
+            if not asset_kind_allowed(ref_kind, config.asset_kinds):
+                continue
             if external:
                 external_refs.append(reference)
                 continue
@@ -346,6 +381,9 @@ def generate(config: MediaManifestConfig) -> None:
         "staging_dir": str(config.staging_dir) if config.staging_dir else "",
         "stage_assets_enabled": config.stage_assets,
         "dimension_probe_enabled": config.probe_dimensions,
+        "asset_kind_filter": sorted(config.asset_kinds) if config.asset_kinds else [],
+        "max_assets": config.max_assets,
+        "bounded_manifest": config.max_assets is not None,
         "manifest_entries": manifest_count,
         "cms_media_assets": cms_count,
         "unreadable_media": unreadable_count,
@@ -458,10 +496,15 @@ def parse_args() -> MediaManifestConfig:
     parser.add_argument("--probe-dimensions", action="store_true", help="Read image headers for PNG/GIF dimensions. Slower on mounted legacy media.")
     parser.add_argument("--staging-dir", help="Optional CMS asset staging directory. Defaults to output-dir/legacy-media when --stage-assets is set.")
     parser.add_argument("--stage-assets", action="store_true", help="Copy readable media into the CMS staging directory.")
+    parser.add_argument("--image-only", action="store_true", help="Limit manifests, blockers, duplicate reports, and staging copies to image assets.")
+    parser.add_argument("--max-assets", type=int, help="Limit readable manifest/staging rows for bounded smoke runs.")
     args = parser.parse_args()
+    if args.max_assets is not None and args.max_assets < 1:
+        parser.error("--max-assets must be greater than zero")
     import_db = Path(args.import_db).resolve() if args.import_db else None
     output_dir = Path(args.output_dir).resolve()
     staging_dir = Path(args.staging_dir).resolve() if args.staging_dir else (output_dir / "legacy-media" if args.stage_assets else None)
+    asset_kinds = frozenset({"image"}) if args.image_only else None
     return MediaManifestConfig(
         inventory_db=Path(args.inventory_db).resolve(),
         import_db=import_db,
@@ -471,6 +514,8 @@ def parse_args() -> MediaManifestConfig:
         probe_dimensions=args.probe_dimensions,
         staging_dir=staging_dir,
         stage_assets=args.stage_assets,
+        asset_kinds=asset_kinds,
+        max_assets=args.max_assets,
     )
 
 
