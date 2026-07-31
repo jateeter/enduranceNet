@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 from urllib.error import HTTPError
+from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 
@@ -31,9 +32,11 @@ MAX_DOMAIN_TEXT_BYTES = 64 * 1024
 MEDIA_EXTENSIONS = {
     ".jpg", ".jpeg", ".jpe", ".png", ".gif", ".webp", ".svg", ".ico",
     ".mp3", ".wav", ".mov", ".mp4", ".m4v", ".avi", ".psd",
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt",
 }
 FEED_EXTENSIONS = {".xml", ".rss", ".atom", ".opml", ".xsl", ".xslt"}
 CONTENT_FRAGMENT_NAMES = {"indexinternal.html", "index_content.html", "newsitems.html"}
+LEGACY_MEDIA_HOSTS = {"endurance.net", "www.endurance.net", "feeds.endurance.net"}
 
 
 @dataclass(frozen=True)
@@ -335,6 +338,23 @@ def init_db(config: ImportConfig) -> sqlite3.Connection:
           import_batch_id TEXT NOT NULL,
           parser_version TEXT NOT NULL,
           PRIMARY KEY (source_path, referenced_url, attribute)
+        );
+
+        CREATE TABLE IF NOT EXISTS stream_media_references (
+          source_path TEXT NOT NULL,
+          provider_entry_id TEXT NOT NULL,
+          entry_index INTEGER NOT NULL,
+          entry_title TEXT NOT NULL,
+          referenced_url TEXT NOT NULL,
+          normalized_url TEXT NOT NULL,
+          referenced_path TEXT,
+          media_kind TEXT NOT NULL,
+          attribute TEXT NOT NULL,
+          blocker TEXT,
+          cms_asset_id TEXT,
+          import_batch_id TEXT NOT NULL,
+          parser_version TEXT NOT NULL,
+          PRIMARY KEY (source_path, provider_entry_id, referenced_url, attribute)
         );
 
         CREATE TABLE IF NOT EXISTS gallery_manifests (
@@ -1007,7 +1027,7 @@ def poll_active_streams(
                 ),
             )
             for index, entry in enumerate(entries):
-                insert_stream_entry(out, batch_id, source_path, index, entry)
+                insert_stream_entry(None, out, batch_id, source_path, index, entry)
                 imported += 1
             for index, outline in enumerate(outlines):
                 insert_stream_outline(out, batch_id, source_path, index, outline)
@@ -1045,6 +1065,7 @@ def poll_active_streams(
 
 
 def insert_stream_entry(
+    inv: sqlite3.Connection | None,
     out: sqlite3.Connection,
     batch_id: str,
     source_path: str,
@@ -1052,6 +1073,14 @@ def insert_stream_entry(
     entry: ET.Element,
 ) -> None:
     links = atom_link_map(entry)
+    provider_entry_id = entry_provider_id(entry, source_path, index)
+    title = text_of(entry, ("title",)) or title_from_path(source_path)
+    summary_html = text_of(entry, ("summary", "description"))
+    content_html = entry_content(entry)
+    out.execute(
+        "DELETE FROM stream_media_references WHERE source_path = ? AND provider_entry_id = ?",
+        (source_path, provider_entry_id),
+    )
     out.execute(
         """
         INSERT OR REPLACE INTO stream_entries_v2 (
@@ -1062,11 +1091,11 @@ def insert_stream_entry(
         """,
         (
             source_path,
-            entry_provider_id(entry, source_path, index),
+            provider_entry_id,
             index,
-            text_of(entry, ("title",)) or title_from_path(source_path),
-            text_of(entry, ("summary", "description")),
-            entry_content(entry),
+            title,
+            summary_html,
+            content_html,
             entry_author(entry),
             text_of(entry, ("published", "pubDate")),
             text_of(entry, ("updated",)),
@@ -1077,6 +1106,16 @@ def insert_stream_entry(
             batch_id,
             PARSER_VERSION,
         ),
+    )
+    record_stream_media_references(
+        inv,
+        out,
+        batch_id,
+        source_path,
+        provider_entry_id,
+        index,
+        title,
+        " ".join(value for value in (summary_html, content_html) if value),
     )
 
 
@@ -1163,7 +1202,7 @@ def import_feeds(inv: sqlite3.Connection, out: sqlite3.Connection, config: Impor
                 ),
             )
             for index, entry in enumerate(entries):
-                insert_stream_entry(out, batch_id, source_path, index, entry)
+                insert_stream_entry(inv, out, batch_id, source_path, index, entry)
                 out.execute(
                     """
                     INSERT OR REPLACE INTO feed_entries (
@@ -1233,6 +1272,91 @@ def media_link_count(links: list[tuple[str, str]]) -> int:
         1 for _, url in links
         if Path(url.split("?", 1)[0].split("#", 1)[0]).suffix.lower() in MEDIA_EXTENSIONS
     )
+
+
+def media_reference_kind(url: str) -> str:
+    suffix = Path(url.split("?", 1)[0].split("#", 1)[0]).suffix.lower()
+    if suffix in {".jpg", ".jpeg", ".jpe", ".png", ".gif", ".webp", ".svg", ".ico", ".psd"}:
+        return "image"
+    if suffix in {".mp3", ".wav"}:
+        return "audio"
+    if suffix in {".mov", ".mp4", ".m4v", ".avi"}:
+        return "video"
+    if suffix:
+        return "document"
+    return "unknown"
+
+
+def is_media_reference(url: str) -> bool:
+    return Path(url.split("?", 1)[0].split("#", 1)[0]).suffix.lower() in MEDIA_EXTENSIONS
+
+
+def normalize_media_url(url: str) -> tuple[str, str | None]:
+    if re.match(r"^https?://", url, re.I):
+        parsed = urlparse(url)
+        if parsed.hostname and parsed.hostname.lower() in LEGACY_MEDIA_HOSTS:
+            normalized = f"/legacy-media{parsed.path}"
+            if parsed.query:
+                normalized = f"{normalized}?{parsed.query}"
+            return normalized, parsed.path.lstrip("/")
+        return url, None
+    if url.startswith("/"):
+        return f"/legacy-media{url}", url.lstrip("/")
+    return f"/legacy-media/{url}", url
+
+
+def media_blocker(inv: sqlite3.Connection | None, referenced_path: str | None) -> str | None:
+    if not inv or not referenced_path:
+        return None
+    row = inv.execute("SELECT status FROM files WHERE path = ?", (referenced_path,)).fetchone()
+    if not row:
+        return "unresolved legacy media path"
+    if row[0] != "ok":
+        return f"legacy media status: {row[0]}"
+    return None
+
+
+def record_stream_media_references(
+    inv: sqlite3.Connection | None,
+    out: sqlite3.Connection,
+    batch_id: str,
+    source_path: str,
+    provider_entry_id: str,
+    entry_index: int,
+    entry_title: str,
+    html_text: str,
+) -> None:
+    if not html_text:
+        return
+    extractor = LinkExtractor()
+    extractor.feed(html_text)
+    for attribute, url in extractor.links:
+        if not is_media_reference(url):
+            continue
+        normalized_url, referenced_path = normalize_media_url(url)
+        out.execute(
+            """
+            INSERT OR REPLACE INTO stream_media_references (
+              source_path, provider_entry_id, entry_index, entry_title,
+              referenced_url, normalized_url, referenced_path, media_kind,
+              attribute, blocker, cms_asset_id, import_batch_id, parser_version
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
+            """,
+            (
+                source_path,
+                provider_entry_id,
+                entry_index,
+                entry_title,
+                url,
+                normalized_url,
+                referenced_path,
+                media_reference_kind(url),
+                attribute,
+                media_blocker(inv, referenced_path),
+                batch_id,
+                PARSER_VERSION,
+            ),
+        )
 
 
 def first_external_link(links: list[tuple[str, str]]) -> str:
@@ -1437,6 +1561,8 @@ def write_reports(out: sqlite3.Connection, config: ImportConfig, batch_id: str) 
         "stream_entries_v2": one(out, "SELECT COUNT(*) FROM stream_entries_v2"),
         "structured_data_files": one(out, "SELECT COUNT(*) FROM structured_data_files"),
         "media_references": one(out, "SELECT COUNT(*) FROM media_references"),
+        "stream_media_references": one(out, "SELECT COUNT(*) FROM stream_media_references"),
+        "stream_media_blockers": one(out, "SELECT COUNT(*) FROM stream_media_references WHERE blocker IS NOT NULL"),
         "gallery_manifests": one(out, "SELECT COUNT(*) FROM gallery_manifests"),
         "advertiser_records": one(out, "SELECT COUNT(*) FROM advertiser_records"),
         "classified_records": one(out, "SELECT COUNT(*) FROM classified_records"),

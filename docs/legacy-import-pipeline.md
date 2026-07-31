@@ -67,6 +67,10 @@ without aborting the import run. The default import remains network-free.
 - `structured_data_files`: XML/OPML/XSL/XSLT provenance, root tags, and parsed
   item counts, including files that do not expose feed entries directly.
 - `media_references`: image/audio/video links found inside templates.
+- `stream_media_references`: media and document links found inside imported
+  stream entry HTML, including normalized `/legacy-media/...` URLs, referenced
+  legacy paths, blocker text for unresolved/unreadable source assets, and a
+  nullable `cms_asset_id` handoff field for the future CMS.
 - `gallery_manifests`: gallery/index pages and their discovered media
   reference counts.
 - `advertiser_records`: advertiser and sponsorship source pages with website

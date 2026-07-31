@@ -110,6 +110,9 @@ Initial presentation modes:
 14. Use the importer `stream_poll_targets` manifest as the scheduled polling
     contract for active Blogger streams, with raw remote snapshots preserved in
     `stream_raw_snapshots`.
+15. Populate `stream_media_references` from imported entry HTML so legacy media
+    paths can render through `/legacy-media/...` now and receive CMS asset IDs
+    later.
 
 ## Verification
 

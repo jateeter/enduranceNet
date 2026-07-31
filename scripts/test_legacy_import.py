@@ -79,7 +79,7 @@ class LegacyImportTest(unittest.TestCase):
                 <published>2026-07-29T00:00:00Z</published>
                 <updated>2026-07-30T00:00:00Z</updated>
                 <author><name>Steph Teeter</name></author>
-                <content type='html'>&lt;p&gt;A first paragraph with an image.&lt;/p&gt;</content>
+                <content type='html'>&lt;p&gt;A first paragraph with an image.&lt;/p&gt;&lt;img src='http://www.endurance.net/images/news.jpg' /&gt;&lt;a href='http://feeds.endurance.net/docs/missing.pdf'&gt;PDF&lt;/a&gt;</content>
                 <link rel='alternate' href='http://feeds.endurance.net/whereintheworld/travel-dispatch.html' />
                 <link rel='self' href='http://www.blogger.com/feeds/7290526037745122441/posts/default/123' />
                 <link rel='replies' href='http://www.blogger.com/comment.g?blogID=7290526037745122441&amp;postID=123' />
@@ -182,6 +182,7 @@ class LegacyImportTest(unittest.TestCase):
         self.assertEqual(first_batch_count + 1, self._count("import_batches"))
         self.assertEqual(11, self._count("legacy_source_files"))
         self.assertEqual(1, self._count("media_assets"))
+        self.assertEqual(2, self._count("stream_media_references"))
         self.assertEqual(3, self._count("feed_entries"))
         self.assertEqual(4, self._count("stream_sources"))
         self.assertEqual(4, self._count("stream_snapshots"))
@@ -236,6 +237,14 @@ class LegacyImportTest(unittest.TestCase):
                 WHERE source_path = 'channels/whereintheworld/atom.xml'
                 """
             ).fetchone()
+            stream_media = conn.execute(
+                """
+                SELECT referenced_url, normalized_url, referenced_path, media_kind, blocker, cms_asset_id
+                FROM stream_media_references
+                WHERE source_path = 'channels/whereintheworld/atom.xml'
+                ORDER BY referenced_url
+                """
+            ).fetchall()
 
         self.assertEqual(legacy_import.PARSER_VERSION, parser_version)
         self.assertEqual(2, failures)
@@ -265,6 +274,27 @@ class LegacyImportTest(unittest.TestCase):
         self.assertIsNone(raw_snapshot[2])
         self.assertIsNone(raw_snapshot[3])
         self.assertIn("Where in the World", raw_snapshot[4])
+        self.assertEqual(
+            [
+                (
+                    "http://feeds.endurance.net/docs/missing.pdf",
+                    "/legacy-media/docs/missing.pdf",
+                    "docs/missing.pdf",
+                    "document",
+                    "unresolved legacy media path",
+                    None,
+                ),
+                (
+                    "http://www.endurance.net/images/news.jpg",
+                    "/legacy-media/images/news.jpg",
+                    "images/news.jpg",
+                    "image",
+                    None,
+                    None,
+                ),
+            ],
+            stream_media,
+        )
 
     def test_active_stream_polling_is_idempotent_and_updates_snapshot_metadata(self) -> None:
         self._run_import(reset=True)
