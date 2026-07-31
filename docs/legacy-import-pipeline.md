@@ -33,10 +33,20 @@ Full import plus active-feed polling:
 python3 scripts/legacy_import.py --reset --poll-active
 ```
 
+Archival feed-only import for RSS/Atom/OPML/XSLT corpus refreshes:
+
+```bash
+python3 scripts/legacy_import.py --reset --feeds-only
+```
+
 `--poll-active` reads the staging `stream_poll_targets` table after local feed
 import, fetches targets marked `ready`, stores raw remote snapshots, upserts
 normalized stream entries by provider entry ID, and records per-target failures
 without aborting the import run. The default import remains network-free.
+
+`--feeds-only` skips PHP/HTML template, media, gallery, advertiser,
+classified, and Ridecamp passes. Use it when refreshing archival Blogger/RSS
+coverage from cached XML without paying the cost of a full source-tree import.
 
 ## Imported Staging Tables
 
@@ -64,6 +74,10 @@ without aborting the import run. The default import remains network-free.
 - `stream_entries_v2`: richer canonical stream entries with provider IDs,
   Blogger/RSS links, author, timestamps, summary/content HTML, and parser
   provenance.
+- `stream_entries_canonical`: deduped entry records keyed by canonical
+  Blogger/RSS IDs or stable links across local snapshot variants.
+- `stream_entry_sources`: provenance mapping from canonical entries back to
+  every source snapshot path/provider ID that contributed the entry.
 - `structured_data_files`: XML/OPML/XSL/XSLT provenance, root tags, and parsed
   item counts, including files that do not expose feed entries directly.
 - `media_references`: image/audio/video links found inside templates.
@@ -85,6 +99,12 @@ Generated outputs:
 - `legacy-import.sqlite`
 - `import-summary.json`
 - `import-failures.jsonl`
+- `archival-stream-coverage.json`
+
+`archival-stream-coverage.json` lists every imported stream source by local
+cache path with provider, format, remote URL, poll status/blocker, source entry
+count, and canonical deduped entry count. Use it to find archival streams that
+have no parsed entries or need source-specific blocker handling.
 
 The staging poll manifest is intended as the cron handoff point. Existing
 legacy cron jobs can be replaced by a scheduled `legacy_import.py --poll-active`
