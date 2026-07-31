@@ -132,3 +132,11 @@ Initial presentation modes:
   and single-entry pages.
 - Keep media 404 and permission-denied reporting linked to the future CMS/media
   migration.
+
+## CMS Decision
+
+The CMS/editorial back office is tracked in
+`docs/cms-platform-decision.md`. Stream source, entry, snapshot, and media
+reference tables remain application-owned and importer/scheduler driven, while
+Directus is the preferred editor-facing layer for reviewing imported records,
+media blockers, taxonomy, publication state, and provenance.
