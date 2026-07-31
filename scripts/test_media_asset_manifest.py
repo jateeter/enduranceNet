@@ -104,6 +104,7 @@ class MediaAssetManifestTest(unittest.TestCase):
                 "INSERT INTO media_references VALUES (?, ?, ?, ?)",
                 [
                     ("pages/index.html", "/images/one.png", "images/one.png", "src"),
+                    ("pages/index.html", "/docs/ride.pdf", "docs/ride.pdf", "href"),
                     ("pages/index.html", "missing.jpg", "", "src"),
                     ("pages/index.html", "https://cdn.example/remote.jpg", "", "src"),
                     ("pages/index.html", "/images/secret.jpg", "images/secret.jpg", "src"),
@@ -127,6 +128,8 @@ class MediaAssetManifestTest(unittest.TestCase):
             probe_dimensions=True,
             staging_dir=self.root / "cms-stage",
             stage_assets=True,
+            asset_kinds=None,
+            max_assets=None,
         )
 
         media_asset_manifest.generate(config)
@@ -160,10 +163,70 @@ class MediaAssetManifestTest(unittest.TestCase):
         summary = json.loads((self.output_dir / "media-summary.json").read_text(encoding="utf-8"))
         self.assertEqual(3, summary["manifest_entries"])
         self.assertEqual(3, summary["cms_media_assets"])
-        self.assertEqual(1, summary["resolved_media_references"])
+        self.assertEqual(2, summary["resolved_media_references"])
         self.assertEqual(2, summary["missing_media_references"])
         self.assertEqual(1, summary["duplicate_media_assets"])
         self.assertEqual(3, summary["cms_media_blockers"])
+
+    def test_image_only_manifest_filters_documents_and_preserves_blockers(self) -> None:
+        config = media_asset_manifest.MediaManifestConfig(
+            inventory_db=self.inventory_db,
+            import_db=self.import_db,
+            source_root=self.source_root,
+            output_dir=self.output_dir,
+            waivers=None,
+            probe_dimensions=True,
+            staging_dir=self.root / "cms-image-stage",
+            stage_assets=True,
+            asset_kinds=frozenset({"image"}),
+            max_assets=None,
+        )
+
+        media_asset_manifest.generate(config)
+
+        manifest = self._jsonl("media-manifest.jsonl")
+        self.assertEqual(2, len(manifest))
+        self.assertEqual({"image"}, {item["asset_kind"] for item in manifest})
+        self.assertNotIn("docs/ride.pdf", {item["source_path"] for item in manifest})
+        self.assertTrue(all(item["stage_status"] == "copied" for item in manifest))
+        self.assertTrue(all(Path(str(item["staged_path"])).exists() for item in manifest))
+
+        missing = self._jsonl("missing-media-references.jsonl")
+        self.assertEqual({"images/secret.jpg", "pages/missing.jpg"}, {item["resolved_path"] for item in missing})
+        self.assertEqual(1, len(self._jsonl("external-media-references.jsonl")))
+        self.assertEqual(1, len(self._jsonl("unreadable-media.jsonl")))
+        self.assertEqual(1, len(self._jsonl("duplicate-media-assets.jsonl")))
+        self.assertEqual(3, len(self._jsonl("cms-media-blockers.jsonl")))
+
+        summary = json.loads((self.output_dir / "media-summary.json").read_text(encoding="utf-8"))
+        self.assertEqual(["image"], summary["asset_kind_filter"])
+        self.assertFalse(summary["bounded_manifest"])
+        self.assertEqual({"image": 2}, summary["asset_kind_counts"])
+
+    def test_max_assets_supports_bounded_manifest_runs(self) -> None:
+        config = media_asset_manifest.MediaManifestConfig(
+            inventory_db=self.inventory_db,
+            import_db=None,
+            source_root=self.source_root,
+            output_dir=self.output_dir,
+            waivers=None,
+            probe_dimensions=False,
+            staging_dir=self.root / "cms-image-stage",
+            stage_assets=False,
+            asset_kinds=frozenset({"image"}),
+            max_assets=1,
+        )
+
+        media_asset_manifest.generate(config)
+
+        manifest = self._jsonl("media-manifest.jsonl")
+        self.assertEqual(1, len(manifest))
+        self.assertEqual("image", manifest[0]["asset_kind"])
+        self.assertEqual("planned", manifest[0]["stage_status"])
+        summary = json.loads((self.output_dir / "media-summary.json").read_text(encoding="utf-8"))
+        self.assertEqual(1, summary["max_assets"])
+        self.assertTrue(summary["bounded_manifest"])
+        self.assertEqual(1, summary["manifest_entries"])
 
 
 if __name__ == "__main__":
