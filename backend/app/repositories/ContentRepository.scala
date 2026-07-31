@@ -1,6 +1,6 @@
 package repositories
 
-import models.{Event, HomepageAsset, LegacyRedirect, News}
+import models.{Event, HomepageAsset, LegacyRedirect, News, StreamEntry, StreamSource}
 import play.api.db.slick.DatabaseConfigProvider
 import slick.jdbc.JdbcProfile
 
@@ -64,10 +64,48 @@ class ContentRepository @Inject()(databaseConfigProvider: DatabaseConfigProvider
     def * = (id, legacyUrl, targetUrl, statusCode, reason) <> ((LegacyRedirect.apply _).tupled, LegacyRedirect.unapply)
   }
 
+  private class StreamSourcesTable(tag: Tag) extends Table[StreamSource](tag, "stream_sources") {
+    def id = column[Long]("id", O.PrimaryKey)
+    def slug = column[String]("slug")
+    def title = column[String]("title")
+    def provider = column[String]("provider")
+    def feedFormat = column[String]("feed_format")
+    def remoteUrl = column[Option[String]]("remote_url")
+    def localCachePath = column[Option[String]]("local_cache_path")
+    def legacyUrl = column[Option[String]]("legacy_url")
+    def defaultPresentation = column[String]("default_presentation")
+    def active = column[Boolean]("active")
+    def notes = column[Option[String]]("notes")
+
+    def * = (id, slug, title, provider, feedFormat, remoteUrl, localCachePath, legacyUrl, defaultPresentation, active, notes) <> ((StreamSource.apply _).tupled, StreamSource.unapply)
+  }
+
+  private class StreamEntriesTable(tag: Tag) extends Table[StreamEntry](tag, "stream_entries") {
+    def id = column[Long]("id", O.PrimaryKey)
+    def sourceId = column[Long]("source_id")
+    def providerEntryId = column[String]("provider_entry_id")
+    def title = column[String]("title")
+    def summaryHtml = column[Option[String]]("summary_html")
+    def contentHtml = column[Option[String]]("content_html")
+    def author = column[Option[String]]("author")
+    def publishedAt = column[Option[String]]("published_at")
+    def updatedAt = column[Option[String]]("updated_at")
+    def alternateUrl = column[Option[String]]("alternate_url")
+    def selfUrl = column[Option[String]]("self_url")
+    def relatedUrl = column[Option[String]]("related_url")
+    def commentsUrl = column[Option[String]]("comments_url")
+    def checksumSha256 = column[Option[String]]("checksum_sha256")
+
+    def source = foreignKey("stream_entries_source_fk", sourceId, streamSources)(_.id)
+    def * = (id, sourceId, providerEntryId, title, summaryHtml, contentHtml, author, publishedAt, updatedAt, alternateUrl, selfUrl, relatedUrl, commentsUrl, checksumSha256) <> ((StreamEntry.apply _).tupled, StreamEntry.unapply)
+  }
+
   private val news = TableQuery[NewsTable]
   private val events = TableQuery[EventsTable]
   private val homepageAssets = TableQuery[HomepageAssetsTable]
   private val legacyRedirects = TableQuery[LegacyRedirectsTable]
+  private val streamSources = TableQuery[StreamSourcesTable]
+  private val streamEntries = TableQuery[StreamEntriesTable]
 
   def listNews(): Future[Seq[News]] =
     db.run(news.sortBy(item => (item.publishedAt.desc, item.id.desc)).result)
@@ -89,4 +127,22 @@ class ContentRepository @Inject()(databaseConfigProvider: DatabaseConfigProvider
 
   def resolveLegacyRedirect(legacyUrl: String): Future[Option[LegacyRedirect]] =
     db.run(legacyRedirects.filter(_.legacyUrl === legacyUrl).result.headOption)
+
+  def listStreamSources(): Future[Seq[StreamSource]] =
+    db.run(streamSources.sortBy(source => (source.active.desc, source.title.asc, source.id.asc)).result)
+
+  def getStreamSource(slug: String): Future[Option[StreamSource]] =
+    db.run(streamSources.filter(_.slug === slug).result.headOption)
+
+  def listStreamEntries(): Future[Seq[StreamEntry]] =
+    db.run(streamEntries.sortBy(entry => (entry.publishedAt.desc.nullsLast, entry.id.desc)).result)
+
+  def listStreamEntriesBySource(slug: String): Future[Seq[StreamEntry]] = {
+    val query = for {
+      source <- streamSources if source.slug === slug
+      entry <- streamEntries if entry.sourceId === source.id
+    } yield entry
+
+    db.run(query.sortBy(entry => (entry.publishedAt.desc.nullsLast, entry.id.desc)).result)
+  }
 }
