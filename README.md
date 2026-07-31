@@ -64,6 +64,11 @@ open http://localhost
 
 The API is available at `http://localhost/api/health`.
 
+Media compatibility URLs are served by the reverse proxy. Set
+`LEGACY_MEDIA_ROOT` for `/legacy-media/<source-path>` and `CMS_MEDIA_ROOT` for
+staged `/media/<asset-id>/<filename>` assets; the defaults target the mounted
+legacy tree and `./migration/media/images`.
+
 ---
 
 ## Production Deployment (HTTPS + Let's Encrypt)
@@ -81,6 +86,8 @@ The API is available at `http://localhost/api/health`.
 export DOMAIN=www.endurance.net
 export EMAIL=admin@endurance.net
 export APPLICATION_SECRET=$(openssl rand -base64 48)
+export LEGACY_MEDIA_ROOT=/Volumes/webstore/endurance.net
+export CMS_MEDIA_ROOT=/srv/endurancenet/media/images
 ```
 
 Or create a `.env` file (never commit it):
@@ -89,6 +96,8 @@ Or create a `.env` file (never commit it):
 DOMAIN=www.endurance.net
 EMAIL=admin@endurance.net
 APPLICATION_SECRET=<your-secret-min-32-chars>
+LEGACY_MEDIA_ROOT=/Volumes/webstore/endurance.net
+CMS_MEDIA_ROOT=/srv/endurancenet/media/images
 ```
 
 ### 3. Bootstrap TLS and start the stack
