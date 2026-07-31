@@ -6,7 +6,10 @@ The release visual/media smoke is:
 
 ```bash
 cd frontend
-APP_URL=https://nextgen.example.org npm run visual:production
+MEDIA_MANIFEST=../migration/media/images/media-manifest.jsonl \
+MEDIA_WAIVERS=../migration/media/image-waivers.jsonl \
+APP_URL=https://nextgen.example.org \
+npm run visual:production
 ```
 
 For local preview:
@@ -35,9 +38,13 @@ Outputs are ignored under `output/playwright/production-regression/`:
 
 - one full-page screenshot per route and viewport
 - `report.json` with route status, screenshot path, image request failures,
-  failed image elements, and aggregate failures
+  failed image elements, source paths, CMS asset IDs, waiver state, waived
+  failures, and aggregate unwaived failures
 
 The command exits non-zero when a route returns a 4xx/5xx status, an image
-request fails, or an `img` element has no rendered dimensions. Set
-`ALLOW_MEDIA_FAILURES=true` only when generating exploratory reports for known
-legacy blockers.
+request fails without a waiver, or an `img` element has no rendered dimensions
+without a waiver. Set `ALLOW_MEDIA_FAILURES=true` only when generating
+exploratory reports for known legacy blockers.
+
+See `docs/image-release-verification.md` for the full image release checklist,
+media-root verification command, waiver format, and report field contract.
