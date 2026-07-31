@@ -11,6 +11,13 @@ Generate a manifest from the current inventory and import staging database:
 python3 scripts/media_asset_manifest.py
 ```
 
+Generate CMS-ready asset records and copy readable media into an import staging
+directory:
+
+```bash
+python3 scripts/media_asset_manifest.py --stage-assets --staging-dir migration/media/legacy-media
+```
+
 Optional PNG/GIF header probing:
 
 ```bash
@@ -31,18 +38,28 @@ Generated files are intentionally ignored under `migration/media/`:
 
 - `media-manifest.jsonl`: one asset/document record per readable legacy media
   file.
+- `cms-media-assets.jsonl`: CMS-ready asset records with stable asset IDs,
+  current `/legacy-media/...` URLs, future `/media/...` URLs, storage keys,
+  staging status, provenance context, dimensions, checksums, and editor-facing
+  metadata fields.
+- `cms-media-import.sql`: Postgres import SQL for the `cms_media_assets` table.
+- `cms-media-blockers.jsonl`: missing references, unreadable source media, and
+  staging copy failures that need operator review.
 - `media-summary.json`: counts by asset kind plus resolved, missing, external,
-  unreadable, and waived reference totals.
+  unreadable, duplicate, blocker, staging, and waived reference totals.
 - `missing-media-references.jsonl`: imported media references that do not
   resolve to a manifest entry.
 - `external-media-references.jsonl`: remote HTTP(S) media references that are
   tracked separately from the local legacy media catalog.
 - `unreadable-media.jsonl`: media/document source files that were inventoried
   but not readable.
+- `duplicate-media-assets.jsonl`: same-checksum assets that may be collapsed or
+  aliased by a future CMS workflow after editorial review.
 
 Each manifest entry includes the source path, legacy URL, checksum, MIME type,
 size, scanned timestamp, asset kind, optional PNG/GIF dimensions when probing is
-enabled, and a durable public URL under `/legacy-media/`.
+enabled, a stable CMS asset ID, a durable public URL under `/legacy-media/`, and
+a future CMS URL under `/media/`.
 
 ## Runtime URL Contract
 
