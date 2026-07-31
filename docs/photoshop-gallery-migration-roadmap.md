@@ -56,3 +56,9 @@ provenance, ordering, blocker reports, and a React presentation.
 - The deployed NextGen app can browse representative galleries on localhost
   through a React route backed by the Scala API.
 - The release gate fails on unwaived broken gallery thumbnails or full images.
+
+## Current Implementation
+
+The corpus manifest begins with `scripts/photoshop_gallery_manifest.py`; see
+`docs/photoshop-gallery-pipeline.md` for operator commands, generated files,
+and fixture-test coverage.
