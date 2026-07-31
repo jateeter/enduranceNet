@@ -36,3 +36,8 @@ The published issues are:
 | `029-frontend-image-url-rewrite-coverage.md` | https://github.com/jateeter/enduranceNet/issues/68 |
 | `030-cms-image-sync-and-review.md` | https://github.com/jateeter/enduranceNet/issues/69 |
 | `031-image-release-verification.md` | https://github.com/jateeter/enduranceNet/issues/70 |
+| `032-photoshop-gallery-corpus-manifest.md` | https://github.com/jateeter/enduranceNet/issues/78 |
+| `033-cms-gallery-handoff.md` | https://github.com/jateeter/enduranceNet/issues/79 |
+| `034-gallery-api-and-react-presentation.md` | https://github.com/jateeter/enduranceNet/issues/80 |
+| `035-legacy-gallery-url-redirects.md` | https://github.com/jateeter/enduranceNet/issues/77 |
+| `036-gallery-release-verification.md` | https://github.com/jateeter/enduranceNet/issues/81 |
