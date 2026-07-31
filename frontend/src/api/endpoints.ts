@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { Event, HomepageAsset, LegacyRedirect, News, Athlete, Result, StreamEntry, StreamEntrySearchResult, StreamSource } from '../types';
+import type { Event, HomepageAsset, LegacyRedirect, News, Athlete, PhotoGallery, Result, StreamEntry, StreamEntrySearchResult, StreamSource } from '../types';
 
 export const fetchEvents = (): Promise<Event[]> =>
   apiClient.get<Event[]>('/events').then((r) => r.data);
@@ -45,6 +45,12 @@ export const fetchResults = (): Promise<Result[]> =>
 
 export const fetchResultsByEvent = (eventId: number): Promise<Result[]> =>
   apiClient.get<Result[]>(`/results/${eventId}`).then((r) => r.data);
+
+export const fetchGalleries = (): Promise<PhotoGallery[]> =>
+  apiClient.get<PhotoGallery[]>('/galleries').then((r) => r.data);
+
+export const fetchGallery = (slug: string): Promise<PhotoGallery> =>
+  apiClient.get<PhotoGallery>(`/galleries/${slug}`).then((r) => r.data);
 
 export const checkHealth = (): Promise<{ status: string; version: string }> =>
   apiClient.get('/health').then((r) => r.data);

@@ -101,3 +101,26 @@ export interface Result {
   category: string;
   year: number;
 }
+
+export interface PhotoGalleryItem {
+  id: string;
+  position: number;
+  caption: string;
+  thumbnailUrl: string;
+  fullImageUrl: string;
+  thumbnailSourcePath: string;
+  fullImageSourcePath: string;
+  itemPageSourcePath: string;
+}
+
+export interface PhotoGallery {
+  id: string;
+  slug: string;
+  title: string;
+  sourceRoot: string;
+  legacyUrl: string;
+  pattern: string;
+  itemCount: number;
+  parserVersion: string;
+  items: PhotoGalleryItem[];
+}
