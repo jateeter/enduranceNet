@@ -50,6 +50,7 @@ class MediaAssetManifestTest(unittest.TestCase):
         (self.source_root / "images").mkdir()
         (self.source_root / "docs").mkdir()
         (self.source_root / "images" / "one.png").write_bytes(PNG_1X1)
+        (self.source_root / "images" / "one-copy.png").write_bytes(PNG_1X1)
         (self.source_root / "docs" / "ride.pdf").write_bytes(b"%PDF-1.4")
 
     def _write_inventory(self) -> None:
@@ -77,6 +78,7 @@ class MediaAssetManifestTest(unittest.TestCase):
                 """,
                 [
                     ("images/one.png", "media_asset", ".png", "image/png", 25, "sha-one", "ok", "0644"),
+                    ("images/one-copy.png", "media_asset", ".png", "image/png", 25, "sha-one", "ok", "0644"),
                     ("docs/ride.pdf", "document", ".pdf", "application/pdf", 8, "sha-pdf", "ok", "0644"),
                     ("images/secret.jpg", "media_asset", ".jpg", "image/jpeg", 10, "sha-secret", "permission_denied", "0000"),
                 ],
@@ -123,16 +125,26 @@ class MediaAssetManifestTest(unittest.TestCase):
             output_dir=self.output_dir,
             waivers=None,
             probe_dimensions=True,
+            staging_dir=self.root / "cms-stage",
+            stage_assets=True,
         )
 
         media_asset_manifest.generate(config)
 
         manifest = self._jsonl("media-manifest.jsonl")
-        self.assertEqual(2, len(manifest))
+        self.assertEqual(3, len(manifest))
         png = next(item for item in manifest if item["source_path"] == "images/one.png")
         self.assertEqual("/legacy-media/images/one.png", png["public_url"])
+        self.assertTrue(str(png["cms_asset_id"]).startswith("legacy-"))
+        self.assertTrue(str(png["cms_public_url"]).startswith("/media/legacy-"))
+        self.assertEqual("copied", png["stage_status"])
+        self.assertTrue(Path(str(png["staged_path"])).exists())
         self.assertEqual(1, png["width"])
         self.assertEqual(1, png["height"])
+
+        cms_assets = self._jsonl("cms-media-assets.jsonl")
+        self.assertEqual(3, len(cms_assets))
+        self.assertEqual({item["cms_asset_id"] for item in manifest}, {item["cms_asset_id"] for item in cms_assets})
 
         missing = self._jsonl("missing-media-references.jsonl")
         self.assertEqual({"images/secret.jpg", "pages/missing.jpg"}, {item["resolved_path"] for item in missing})
@@ -141,11 +153,17 @@ class MediaAssetManifestTest(unittest.TestCase):
 
         self.assertEqual(1, len(self._jsonl("external-media-references.jsonl")))
         self.assertEqual(1, len(self._jsonl("unreadable-media.jsonl")))
+        self.assertEqual(1, len(self._jsonl("duplicate-media-assets.jsonl")))
+        self.assertEqual(3, len(self._jsonl("cms-media-blockers.jsonl")))
+        self.assertIn("INSERT INTO cms_media_assets", (self.output_dir / "cms-media-import.sql").read_text(encoding="utf-8"))
 
         summary = json.loads((self.output_dir / "media-summary.json").read_text(encoding="utf-8"))
-        self.assertEqual(2, summary["manifest_entries"])
+        self.assertEqual(3, summary["manifest_entries"])
+        self.assertEqual(3, summary["cms_media_assets"])
         self.assertEqual(1, summary["resolved_media_references"])
         self.assertEqual(2, summary["missing_media_references"])
+        self.assertEqual(1, summary["duplicate_media_assets"])
+        self.assertEqual(3, summary["cms_media_blockers"])
 
 
 if __name__ == "__main__":
