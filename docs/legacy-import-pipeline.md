@@ -92,6 +92,36 @@ run once deployment storage and network policy are finalized. Poll failures are
 also written to `import_failures` with importer `stream-poll`, so a failed live
 feed does not block local archival import or unrelated feeds.
 
+## Scheduled Poll Worker
+
+After a staging database exists, scheduled jobs should use the focused poll
+worker rather than re-running the full importer:
+
+```bash
+python3 scripts/poll_active_streams.py --staging-db migration/imports/legacy-import.sqlite --output-dir migration/imports
+```
+
+The worker reads `stream_poll_targets` rows marked `ready`, sends ETag and
+Last-Modified headers when available, stores every successful remote response in
+`stream_raw_snapshots`, and upserts normalized entries in `stream_entries_v2`.
+It writes:
+
+- `stream-poll-report.json`: batch ID, ready/blocked counts, imported entry
+  count, raw snapshot deltas, latest HTTP status/checksum metadata, and target
+  status details.
+- `stream-poll-failures.jsonl`: per-target fetch or parse failures from the
+  `import_failures` table.
+
+By default the command exits non-zero when any target fails, which is useful for
+cron or container scheduler alerting. Use `--allow-target-failures` when the
+operator wants failed feeds recorded in the report without failing the outer job.
+
+Example cron cadence matching the legacy background-refresh workflow:
+
+```cron
+*/30 * * * * cd /srv/enduranceNet && python3 scripts/poll_active_streams.py --staging-db migration/imports/legacy-import.sqlite --output-dir migration/imports
+```
+
 The importer does not mutate `/Volumes/webstore/endurance.net/` and does not
 write production content tables directly. The staging database is a reviewable
 handoff point for later Postgres loading and domain-specific importers.
