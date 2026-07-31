@@ -6,18 +6,6 @@ import { fetchEvents, fetchHomepageAssets, fetchNews } from '../api/endpoints';
 import { legacyAssetUrl } from '../utils/legacyAssets';
 import type { HomepageAsset, News } from '../types';
 
-const legacyCurrentHeadlines = [
-  'US Equestrian Announces U.S. Endurance Team Short List for 2026 FEI Endurance World Championship',
-  'Butheeb (UAE) selected as replacement host for the FEI Endurance World Championship 2026',
-  '2026 Tahoe Rim photos by Bill Gore',
-  '2026 Vermont 100 photos by Ben Kimball',
-  'Ann Kratochvil Passes Away',
-  'China Equestrian endurance riding competition opens in north China county',
-  'UK: Derbyshire teenager lands back-to-back endurance victories',
-  'Angie Field Rochna 1965 - 2026',
-  'Tevis Ride Entry Deadline Tomorrow July 18, and 2026 Tevis Trivia',
-];
-
 const advertiserNames = [
   'Belesemo Arabians',
   'Cypress Trails Equestrian Center, Sales, Training, Boarding',
@@ -67,6 +55,25 @@ function StoryTile({ story }: { story: News }) {
   );
 }
 
+function firstParagraph(story: News): string {
+  return story.content.split(/\n\s*\n/)[0]?.trim() || story.summary;
+}
+
+function HeadlineLink({ story }: { story: News }) {
+  return (
+    <li className="legacy-headline-item">
+      <Link to={`/news/${story.id}`} className="legacy-headline-link" aria-describedby={`headline-tip-${story.id}`}>
+        <span className="legacy-headline-title">{story.title}</span>
+        <span className="legacy-headline-summary">{story.summary}</span>
+        <span id={`headline-tip-${story.id}`} className="legacy-headline-tooltip" role="tooltip">
+          <strong>{story.title}</strong>
+          <span>{firstParagraph(story)}</span>
+        </span>
+      </Link>
+    </li>
+  );
+}
+
 export default function HomePage() {
   const events = useApi(fetchEvents);
   const news = useApi(fetchNews);
@@ -75,12 +82,11 @@ export default function HomePage() {
   const featuredStories = news.data?.filter((item) => item.category === 'Featured Stories') ?? [];
   const assetsFor = (placement: string) =>
     homepageAssets.data?.filter((asset) => asset.placement === placement) ?? [];
-  const headlineRows = [
-    ...currentNews.map((item) => ({ id: item.id, title: item.title, internal: true })),
-    ...legacyCurrentHeadlines
-      .filter((title) => !currentNews.some((item) => item.title === title))
-      .map((title, index) => ({ id: `legacy-${index}`, title, internal: false })),
-  ];
+  const headlineStories = [
+    ...currentNews,
+    ...featuredStories,
+    ...(news.data?.filter((item) => item.category !== 'Current News' && item.category !== 'Featured Stories') ?? []),
+  ].filter((item, index, list) => list.findIndex((candidate) => candidate.id === item.id) === index);
   const leadStory = featuredStories[0] ?? news.data?.[0];
   const photoStory = news.data?.find((item) => item.imageUrl && item.category === 'Event Coverage') ?? leadStory;
   const sponsorAsset = assetsFor('current_news_sponsor')[0];
@@ -92,104 +98,120 @@ export default function HomePage() {
     <div className="legacy-landing">
       <div className="legacy-portal-grid">
         <section className="legacy-news-column">
-          <h1>This Week's Current News</h1>
-        {news.loading && <LoadingSpinner />}
-        {news.error && <ErrorMessage message={news.error} />}
-          <ul className="legacy-headline-list">
-            {headlineRows.slice(0, 9).map((headline) => (
-              <li key={headline.id}>
-                {headline.internal ? (
-                  <Link to={`/news/${headline.id}`}>{headline.title}</Link>
-                ) : (
-                  <Link to="/news">{headline.title}</Link>
-                )}
+          <div className="legacy-card legacy-headlines-card legacy-focal-card">
+          <header className="legacy-card-title">
+            <h1>This Week's Current News</h1>
+          </header>
+          <div className="legacy-card-body">
+            {news.loading && <LoadingSpinner />}
+            {news.error && <ErrorMessage message={news.error} />}
+            <ul className="legacy-headline-list">
+              {headlineStories.slice(0, 9).map((story) => (
+                <HeadlineLink key={story.id} story={story} />
+              ))}
+              <li className="legacy-headline-more">
+                <Link to="/news">More news...</Link>
               </li>
-            ))}
-            <li>
-              <Link to="/news">More news...</Link>
-            </li>
-          </ul>
-
-        {homepageAssets.loading && <LoadingSpinner />}
-        {homepageAssets.error && <ErrorMessage message={homepageAssets.error} />}
-          <div className="legacy-sponsor-block">
-            <h2>This news roundup brought to you by our friends at DWA Arabians</h2>
-            {sponsorAsset && <AssetImageLink asset={sponsorAsset} className="legacy-sponsor-image" />}
-            <p>Quality Arabians bred for Endurance</p>
+            </ul>
+          </div>
           </div>
 
-          <div className="legacy-book-block">
-            <Link to="/featured-stories">Got Endurance Books? We do here!</Link>
-            <img src={legacyAssetUrl('/images/Graphic_booksign.jpg')} alt="Books" loading="lazy" />
+          {homepageAssets.loading && <LoadingSpinner />}
+          {homepageAssets.error && <ErrorMessage message={homepageAssets.error} />}
+          <div className="legacy-sponsor-block legacy-card legacy-focal-card">
+            <header className="legacy-card-title">
+              <h2>This news roundup brought to you by our friends at DWA Arabians</h2>
+            </header>
+            <div className="legacy-card-body">
+              {sponsorAsset && <AssetImageLink asset={sponsorAsset} className="legacy-sponsor-image" />}
+              <p>Quality Arabians bred for Endurance</p>
+            </div>
           </div>
-        </section>
 
-        <section className="legacy-feature-column">
-          <div className="legacy-box-heading">This week's Featured Stories:</div>
-          {leadStory && (
-            <Link to={`/news/${leadStory.id}`} className="legacy-feature-lead">
-              <span>{leadStory.title}</span>
-            </Link>
-          )}
-          <div className="legacy-feature-assets">
-            {assetsFor('featured_story').slice(0, 3).map((asset) => (
-              <AssetImageLink key={asset.id} asset={asset} className="legacy-feature-asset" />
-            ))}
-          </div>
-          <div className="legacy-feature-list">
-            {featuredStories.slice(1, 4).map((story) => (
-              <StoryTile key={story.id} story={story} />
-            ))}
+          <div className="legacy-book-block legacy-card">
+            <header className="legacy-card-title">
+              <Link to="/featured-stories">Got Endurance Books? We do here!</Link>
+            </header>
+            <div className="legacy-card-body">
+              <img src={legacyAssetUrl('/images/Graphic_booksign.jpg')} alt="Books" loading="lazy" />
+            </div>
           </div>
         </section>
 
-        <section className="legacy-media-column">
-          <div className="legacy-social-row">
+        <section className="legacy-feature-column legacy-card legacy-focal-card">
+          <header className="legacy-card-title">
+            <div className="legacy-box-heading">This week's Featured Stories:</div>
+          </header>
+          <div className="legacy-card-body">
+            {leadStory && (
+              <Link to={`/news/${leadStory.id}`} className="legacy-feature-lead">
+                <span>{leadStory.title}</span>
+              </Link>
+            )}
+            <div className="legacy-feature-assets">
+              {assetsFor('featured_story').slice(0, 3).map((asset) => (
+                <AssetImageLink key={asset.id} asset={asset} className="legacy-feature-asset" />
+              ))}
+            </div>
+            <div className="legacy-feature-list">
+              {featuredStories.slice(1, 4).map((story) => (
+                <StoryTile key={story.id} story={story} />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="legacy-media-column legacy-card">
+          <div className="legacy-social-row legacy-card-title">
             <span>Follow EN on ...</span>
             {socialAssets.map((asset) => (
               <AssetImageLink key={asset.id} asset={asset} className="legacy-social-icon" />
             ))}
           </div>
 
-          {photoStory?.imageUrl && (
-            <Link to={`/news/${photoStory.id}`} className="legacy-photo-feature">
-              <img src={legacyAssetUrl(photoStory.imageUrl)} alt="" />
-              <span>{photoStory.title}</span>
-              <em>Photos by Merri Melde</em>
-            </Link>
-          )}
-
-          <div className="legacy-event-archive">
-            <h2>*Event Coverage Archive*</h2>
-            <h3>Just Happened!</h3>
-            <div className="legacy-event-tiles legacy-event-tiles-three">
-              {eventAssets.slice(0, 3).map((asset) => (
-                <AssetImageLink key={asset.id} asset={asset} className="legacy-event-tile" />
-              ))}
-            </div>
-            {events.error && <ErrorMessage message={events.error} />}
-            <h3>Coming up in 2026!</h3>
-            <div className="legacy-event-tiles">
-              {eventAssets.slice(3, 5).map((asset) => (
-                <AssetImageLink key={asset.id} asset={asset} className="legacy-event-tile" />
-              ))}
-            </div>
-            {events.data && (
-              <Link to="/events" className="legacy-plain-link">
-                {events.data.length} migrated event records
+          <div className="legacy-card-body">
+            {photoStory?.imageUrl && (
+              <Link to={`/news/${photoStory.id}`} className="legacy-photo-feature">
+                <img src={legacyAssetUrl(photoStory.imageUrl)} alt="" />
+                <span>{photoStory.title}</span>
+                <em>Photos by Merri Melde</em>
               </Link>
             )}
+
+            <div className="legacy-event-archive">
+              <h2>*Event Coverage Archive*</h2>
+              <h3>Just Happened!</h3>
+              <div className="legacy-event-tiles legacy-event-tiles-three">
+                {eventAssets.slice(0, 3).map((asset) => (
+                  <AssetImageLink key={asset.id} asset={asset} className="legacy-event-tile" />
+                ))}
+              </div>
+              {events.error && <ErrorMessage message={events.error} />}
+              <h3>Coming up in 2026!</h3>
+              <div className="legacy-event-tiles">
+                {eventAssets.slice(3, 5).map((asset) => (
+                  <AssetImageLink key={asset.id} asset={asset} className="legacy-event-tile" />
+                ))}
+              </div>
+              {events.data && (
+                <Link to="/events" className="legacy-plain-link">
+                  {events.data.length} migrated event records
+                </Link>
+              )}
+            </div>
           </div>
         </section>
 
-        <aside className="legacy-ad-column" aria-label="Endurance.Net advertisers">
+        <aside className="legacy-ad-column legacy-card" aria-label="Endurance.Net advertisers">
           <div className="legacy-ad-logos">
             {advertiserAssets.slice(1, 3).map((asset) => (
               <AssetImageLink key={asset.id} asset={asset} className="legacy-ad-logo" />
             ))}
           </div>
           <div className="legacy-ad-directory">
-            <h2>All Endurance.Net Advertisers</h2>
+            <header className="legacy-card-title">
+              <h2>All Endurance.Net Advertisers</h2>
+            </header>
             {[...advertiserNames, ...advertiserAssets.map((asset) => asset.title)]
               .filter((name, index, list) => list.indexOf(name) === index)
               .slice(0, 15)
