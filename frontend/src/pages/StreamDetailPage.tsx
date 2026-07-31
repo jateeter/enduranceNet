@@ -7,6 +7,7 @@ import { fetchStreamEntriesForSource, fetchStreamSource } from '../api/endpoints
 import { useApi } from '../hooks/useApi';
 import type { StreamSource } from '../types';
 import { dateLabel, hostLabel, sourceRssUrl } from '../utils/streamFormat';
+import { streamPresentationLabel } from '../utils/streamPresentation';
 
 function StreamActionLinks({ stream }: { stream: StreamSource }) {
   const rssUrl = sourceRssUrl(stream);
@@ -97,6 +98,10 @@ export default function StreamDetailPage() {
             <div>
               <dt>Local cache</dt>
               <dd>{stream.localCachePath ?? 'Legacy feed registry'}</dd>
+            </div>
+            <div>
+              <dt>Presentation</dt>
+              <dd>{streamPresentationLabel(stream)}</dd>
             </div>
           </dl>
 
