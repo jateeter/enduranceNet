@@ -28,4 +28,4 @@ ENV JAVA_OPTS="-Xmx512m -Xms256m"
 
 EXPOSE 9000
 
-ENTRYPOINT ["./bin/endurancenet-backend", "-Dplay.http.secret.key=${APPLICATION_SECRET}"]
+ENTRYPOINT ["./bin/endurancenet-backend"]
