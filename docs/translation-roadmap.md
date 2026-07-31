@@ -55,6 +55,11 @@ high-value areas into structured React and Scala experiences.
 10. Verify coverage by comparing source inventory, imported records, rendered
     URLs, media availability, and redirects.
 
+The CMS/editorial layer is now scoped in
+`docs/cms-platform-decision.md`: Directus is the preferred back office over the
+existing Postgres repository, with Scala Play remaining the public API and
+migration authority.
+
 ## Phases
 
 ### Phase 0: Source Access And Evidence
@@ -181,4 +186,3 @@ Acceptance:
   not match the endurance.net domain.
 - PHP execution hidden behind `.html` makes naive static import unsafe.
 - Some legacy paths may depend on request URI, sessions, or server environment.
-
