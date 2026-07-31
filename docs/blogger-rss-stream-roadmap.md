@@ -107,6 +107,9 @@ Initial presentation modes:
 11. Add normalized headline lists and story cards for pulled stream entries.
 12. Add combined stream search/filtering across active and archival feeds.
 13. Integrate stream-linked media references with the future CMS asset bridge.
+14. Use the importer `stream_poll_targets` manifest as the scheduled polling
+    contract for active Blogger streams, with raw remote snapshots preserved in
+    `stream_raw_snapshots`.
 
 ## Verification
 

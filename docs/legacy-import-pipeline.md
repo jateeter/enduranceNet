@@ -27,6 +27,17 @@ Full import from the current inventory snapshot:
 python3 scripts/legacy_import.py --reset
 ```
 
+Full import plus active-feed polling:
+
+```bash
+python3 scripts/legacy_import.py --reset --poll-active
+```
+
+`--poll-active` reads the staging `stream_poll_targets` table after local feed
+import, fetches targets marked `ready`, stores raw remote snapshots, upserts
+normalized stream entries by provider entry ID, and records per-target failures
+without aborting the import run. The default import remains network-free.
+
 ## Imported Staging Tables
 
 - `import_batches`: idempotent import batch metadata and parser version.
@@ -44,6 +55,12 @@ python3 scripts/legacy_import.py --reset
   modes, active/archive hints, checksums, and parser provenance.
 - `stream_snapshots`: raw feed snapshot metadata, including feed ID, title,
   self/alternate/next links, item count, and checksum.
+- `stream_raw_snapshots`: local-cache and remote-poll raw feed bodies with
+  fetch URL, HTTP status, checksum, ETag, Last-Modified, parser version, and
+  import batch provenance.
+- `stream_poll_targets`: active feed refresh manifest with canonical poll URL,
+  `rel="next"` paging hints, last checksum, ETag, Last-Modified, and
+  ready/blocked status.
 - `stream_entries_v2`: richer canonical stream entries with provider IDs,
   Blogger/RSS links, author, timestamps, summary/content HTML, and parser
   provenance.
@@ -64,6 +81,12 @@ Generated outputs:
 - `legacy-import.sqlite`
 - `import-summary.json`
 - `import-failures.jsonl`
+
+The staging poll manifest is intended as the cron handoff point. Existing
+legacy cron jobs can be replaced by a scheduled `legacy_import.py --poll-active`
+run once deployment storage and network policy are finalized. Poll failures are
+also written to `import_failures` with importer `stream-poll`, so a failed live
+feed does not block local archival import or unrelated feeds.
 
 The importer does not mutate `/Volumes/webstore/endurance.net/` and does not
 write production content tables directly. The staging database is a reviewable
