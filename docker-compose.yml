@@ -70,7 +70,7 @@ services:
     container_name: endurancenet-nginx
     restart: unless-stopped
     volumes:
-      - ${LEGACY_MEDIA_ROOT:-./migration/media/legacy-media}:/var/www/legacy-media:ro
+      - ${LEGACY_MEDIA_ROOT:-/Volumes/webstore/endurance.net}:/var/www/legacy-media:ro
     ports:
       - "80:80"
     environment:

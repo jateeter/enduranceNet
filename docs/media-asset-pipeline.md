@@ -47,8 +47,9 @@ enabled, and a durable public URL under `/legacy-media/`.
 ## Runtime URL Contract
 
 The Docker/Nginx stack serves `/legacy-media/<source-path>` from a read-only
-mount at `/var/www/legacy-media/`. Set `LEGACY_MEDIA_ROOT` to the legacy media
-root or to a copied media artifact directory:
+mount at `/var/www/legacy-media/`. The default compose mount uses the local live
+source tree at `/Volumes/webstore/endurance.net`. Set `LEGACY_MEDIA_ROOT` when
+running somewhere else, or when serving from a copied media artifact directory:
 
 ```bash
 LEGACY_MEDIA_ROOT=/Volumes/webstore/endurance.net docker compose up --build
