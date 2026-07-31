@@ -51,6 +51,11 @@ export interface StreamSource {
   legacyUrl?: string;
   defaultPresentation: string;
   active: boolean;
+  bloggerBlogId?: string;
+  canonicalAtomUrl?: string;
+  canonicalRssUrl?: string;
+  latestCachedEntry?: string;
+  streamGroup?: string;
   notes?: string;
 }
 

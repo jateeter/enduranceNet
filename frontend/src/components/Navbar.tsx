@@ -10,6 +10,7 @@ const navLinks = [
   { to: '/community#advertisers', label: 'Shop/Advertise' },
   { to: '/community#ridecamp', label: 'Ridecamp' },
   { to: '/community#classifieds', label: 'Classified' },
+  { to: '/streams', label: 'Streams' },
   { to: '/events', label: 'Events' },
   { to: '/athletes', label: 'Learn/AERC' },
 ];

@@ -13,6 +13,11 @@ case class StreamSource(
   legacyUrl: Option[String],
   defaultPresentation: String,
   active: Boolean,
+  bloggerBlogId: Option[String],
+  canonicalAtomUrl: Option[String],
+  canonicalRssUrl: Option[String],
+  latestCachedEntry: Option[String],
+  streamGroup: Option[String],
   notes: Option[String]
 )
 

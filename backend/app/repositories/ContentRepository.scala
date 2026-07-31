@@ -75,9 +75,14 @@ class ContentRepository @Inject()(databaseConfigProvider: DatabaseConfigProvider
     def legacyUrl = column[Option[String]]("legacy_url")
     def defaultPresentation = column[String]("default_presentation")
     def active = column[Boolean]("active")
+    def bloggerBlogId = column[Option[String]]("blogger_blog_id")
+    def canonicalAtomUrl = column[Option[String]]("canonical_atom_url")
+    def canonicalRssUrl = column[Option[String]]("canonical_rss_url")
+    def latestCachedEntry = column[Option[String]]("latest_cached_entry")
+    def streamGroup = column[Option[String]]("stream_group")
     def notes = column[Option[String]]("notes")
 
-    def * = (id, slug, title, provider, feedFormat, remoteUrl, localCachePath, legacyUrl, defaultPresentation, active, notes) <> ((StreamSource.apply _).tupled, StreamSource.unapply)
+    def * = (id, slug, title, provider, feedFormat, remoteUrl, localCachePath, legacyUrl, defaultPresentation, active, bloggerBlogId, canonicalAtomUrl, canonicalRssUrl, latestCachedEntry, streamGroup, notes) <> ((StreamSource.apply _).tupled, StreamSource.unapply)
   }
 
   private class StreamEntriesTable(tag: Tag) extends Table[StreamEntry](tag, "stream_entries") {

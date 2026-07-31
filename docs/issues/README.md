@@ -22,3 +22,7 @@ The published issues are:
 | `015-xslt-presentation-parity.md` | https://github.com/jateeter/enduranceNet/issues/36 |
 | `016-react-stream-presentations.md` | https://github.com/jateeter/enduranceNet/issues/37 |
 | `017-stream-media-cms-bridge.md` | https://github.com/jateeter/enduranceNet/issues/38 |
+| `018-validated-blogger-registry-seed.md` | https://github.com/jateeter/enduranceNet/issues/43 |
+| `019-rss-stream-directory-navigation.md` | https://github.com/jateeter/enduranceNet/issues/45 |
+| `020-rss-entry-cards-and-stream-detail.md` | https://github.com/jateeter/enduranceNet/issues/44 |
+| `021-rss-corpus-search-and-filtering.md` | https://github.com/jateeter/enduranceNet/issues/46 |
