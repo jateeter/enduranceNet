@@ -12,6 +12,7 @@ import AthletesPage from './pages/AthletesPage';
 import AthleteDetailPage from './pages/AthleteDetailPage';
 import ResultsPage from './pages/ResultsPage';
 import CommunityArchivePage from './pages/CommunityArchivePage';
+import StreamsPage from './pages/StreamsPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
             <Route path="/athletes/:id" element={<AthleteDetailPage />} />
             <Route path="/results" element={<ResultsPage />} />
             <Route path="/community" element={<CommunityArchivePage />} />
+            <Route path="/streams" element={<StreamsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>

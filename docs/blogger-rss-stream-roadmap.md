@@ -41,6 +41,31 @@ Treat streams as a first-class subsystem:
 The Scala API exposes stream sources and entries. React renders entries through
 named presentation components instead of running browser-side XSLT.
 
+## Uniform Stream Experience
+
+The validated Blogger registry is now the navigation backbone for the RSS
+corpus. The new site should present every current and archival stream through
+one consistent information architecture:
+
+- Active streams appear first as the daily/weekly information surface: World
+  News, USA News, Snapshots, Consider This, Ride Stories, and Trails Matter.
+- Archival streams remain visible as corpus sections, not hidden implementation
+  leftovers.
+- Each stream page/card uses the same title, freshness, source, and action
+  vocabulary, with the same Endurance.Net color palette and legacy banner
+  rhythm already used on the landing page.
+- The navigation model groups streams by editorial purpose: Active News,
+  Community, Event & Team Archives, News Archives, Photo & Travel Journals, and
+  Resources.
+- The canonical pull URI is the validated Blogger RSS endpoint:
+  `https://www.blogger.com/feeds/{blogId}/posts/default?alt=rss`. The matching
+  Atom endpoint is retained for importer compatibility and entry-level links.
+
+The first user-facing surface should be a scan-friendly stream directory. The
+next slice should add per-stream pages with normalized entries and legacy-style
+headline/summary cards. Later slices should add combined archive search,
+cross-stream filters, media extraction, and CMS handoff.
+
 ## XSLT Translation Strategy
 
 Use XSLT as a behavioral specification, not as the runtime rendering layer.
@@ -76,6 +101,12 @@ Initial presentation modes:
 7. Enable scheduled polling for active Blogger streams while preserving raw
    snapshots for auditability.
 8. Import archival cached Blogger HTML/XML for feeds that are no longer live.
+9. Seed the full validated Blogger registry into the Scala/Postgres source
+   model, including canonical Atom/RSS URLs and editorial grouping.
+10. Build a uniform React stream directory and per-stream navigation surface.
+11. Add normalized headline lists and story cards for pulled stream entries.
+12. Add combined stream search/filtering across active and archival feeds.
+13. Integrate stream-linked media references with the future CMS asset bridge.
 
 ## Verification
 

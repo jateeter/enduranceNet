@@ -15,8 +15,9 @@ class StreamControllerSpec extends PlaySpec with GuiceOneAppPerTest with Injecti
 
       status(result) mustBe OK
       contentType(result) mustBe Some("application/json")
-      (json \\ "slug").map(_.as[String]) must contain("where-in-the-world")
-      (json \\ "defaultPresentation").map(_.as[String]) must contain("popup-channel-card")
+      (json \\ "slug").map(_.as[String]) must contain("endurance-riding-news")
+      (json \\ "canonicalRssUrl").map(_.as[String]) must contain("https://www.blogger.com/feeds/5099696/posts/default?alt=rss")
+      (json \\ "streamGroup").map(_.as[String]) must contain("Active News")
     }
   }
 
@@ -27,8 +28,10 @@ class StreamControllerSpec extends PlaySpec with GuiceOneAppPerTest with Injecti
       val json = contentAsJson(result)
 
       status(result) mustBe OK
-      (json \ "provider").as[String] mustBe "blogger-local-cache"
-      (json \ "localCachePath").as[String] mustBe "/merri/MerriTravels.xml"
+      (json \ "provider").as[String] mustBe "blogger"
+      (json \ "bloggerBlogId").as[String] mustBe "4301230285143488965"
+      (json \ "canonicalRssUrl").as[String] mustBe "https://www.blogger.com/feeds/4301230285143488965/posts/default?alt=rss"
+      (json \ "streamGroup").as[String] mustBe "Photo & Travel Journals"
     }
 
     "return 404 for an unknown stream source" in {
