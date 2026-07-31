@@ -64,6 +64,30 @@ class LegacyImportTest(unittest.TestCase):
             "<rss><channel><item><title>Feed Item</title><link>https://example.com/item</link></item></channel></rss>",
         )
         self._write_file(
+            "channels/whereintheworld/atom.xml",
+            """
+            <feed xmlns='http://www.w3.org/2005/Atom'>
+              <id>tag:blogger.com,1999:blog-7290526037745122441</id>
+              <title>Where in the World</title>
+              <generator>Blogger</generator>
+              <link rel='self' href='http://www.blogger.com/feeds/7290526037745122441/posts/default' />
+              <link rel='alternate' href='http://feeds.endurance.net/whereintheworld/' />
+              <link rel='next' href='http://www.blogger.com/feeds/7290526037745122441/posts/default?start-index=26' />
+              <entry>
+                <id>tag:blogger.com,1999:blog-7290526037745122441.post-123</id>
+                <title>Travel Dispatch</title>
+                <published>2026-07-29T00:00:00Z</published>
+                <updated>2026-07-30T00:00:00Z</updated>
+                <author><name>Steph Teeter</name></author>
+                <content type='html'>&lt;p&gt;A first paragraph with an image.&lt;/p&gt;</content>
+                <link rel='alternate' href='http://feeds.endurance.net/whereintheworld/travel-dispatch.html' />
+                <link rel='self' href='http://www.blogger.com/feeds/7290526037745122441/posts/default/123' />
+                <link rel='replies' href='http://www.blogger.com/comment.g?blogID=7290526037745122441&amp;postID=123' />
+              </entry>
+            </feed>
+            """,
+        )
+        self._write_file(
             "channels/feeds.opml",
             "<opml><body><outline text='Ridecamp' xmlUrl='https://example.com/ridecamp.xml' /></body></opml>",
         )
@@ -114,6 +138,7 @@ class LegacyImportTest(unittest.TestCase):
             conn.execute("CREATE TABLE includes (source_path TEXT, resolved_path TEXT)")
             self._insert_file(conn, "CurrentNews/indexInternal.html", "executable_template", "text/html")
             self._insert_file(conn, "channels/news.xml", "data_file", "application/xml")
+            self._insert_file(conn, "channels/whereintheworld/atom.xml", "data_file", "application/xml")
             self._insert_file(conn, "channels/feeds.opml", "data_file", "application/xml")
             self._insert_file(conn, "channels/transform.xsl", "data_file", "application/xml")
             self._insert_file(conn, "channels/bad.xml", "data_file", "application/xml")
@@ -155,10 +180,13 @@ class LegacyImportTest(unittest.TestCase):
         self._run_import()
 
         self.assertEqual(first_batch_count + 1, self._count("import_batches"))
-        self.assertEqual(10, self._count("legacy_source_files"))
+        self.assertEqual(11, self._count("legacy_source_files"))
         self.assertEqual(1, self._count("media_assets"))
-        self.assertEqual(2, self._count("feed_entries"))
-        self.assertEqual(3, self._count("structured_data_files"))
+        self.assertEqual(3, self._count("feed_entries"))
+        self.assertEqual(4, self._count("stream_sources"))
+        self.assertEqual(4, self._count("stream_snapshots"))
+        self.assertEqual(3, self._count("stream_entries_v2"))
+        self.assertEqual(4, self._count("structured_data_files"))
         self.assertEqual(1, self._count("advertiser_records"))
         self.assertEqual(1, self._count("classified_records"))
         self.assertEqual(1, self._count("ridecamp_messages"))
@@ -171,9 +199,34 @@ class LegacyImportTest(unittest.TestCase):
             failures = conn.execute(
                 "SELECT COUNT(*) FROM import_failures WHERE source_path = 'channels/bad.xml'"
             ).fetchone()[0]
+            stream_source = conn.execute(
+                """
+                SELECT provider, feed_format, remote_url, default_presentation
+                FROM stream_sources
+                WHERE source_path = 'channels/whereintheworld/atom.xml'
+                """
+            ).fetchone()
+            stream_entry = conn.execute(
+                """
+                SELECT provider_entry_id, author, alternate_url, self_url, comments_url
+                FROM stream_entries_v2
+                WHERE source_path = 'channels/whereintheworld/atom.xml'
+                """
+            ).fetchone()
 
         self.assertEqual(legacy_import.PARSER_VERSION, parser_version)
         self.assertEqual(2, failures)
+        self.assertEqual(("blogger", "atom-1.0", "http://www.blogger.com/feeds/7290526037745122441/posts/default", "popup-channel-card"), stream_source)
+        self.assertEqual(
+            (
+                "tag:blogger.com,1999:blog-7290526037745122441.post-123",
+                "Steph Teeter",
+                "http://feeds.endurance.net/whereintheworld/travel-dispatch.html",
+                "http://www.blogger.com/feeds/7290526037745122441/posts/default/123",
+                "http://www.blogger.com/comment.g?blogID=7290526037745122441&postID=123",
+            ),
+            stream_entry,
+        )
 
 
 if __name__ == "__main__":
