@@ -73,9 +73,37 @@ def presentation_mode(path: Path, flags: dict[str, bool]) -> str:
 
 
 def migration_status(mode: str) -> str:
-    if mode in {"atom-list", "popup-channel-card", "single-entry-html", "event-story-list", "rss-list", "google-reader-frontpage"}:
-        return "planned"
-    return "triage"
+    if mode in {"atom-list", "popup-channel-card", "single-entry-html", "event-story-list", "rss-list"}:
+        return "migrated"
+    if mode == "google-reader-frontpage":
+        return "compatibility-only"
+    return "compatibility-only"
+
+
+def fixture_role(mode: str) -> str:
+    return {
+        "atom-list": "atom-list",
+        "popup-channel-card": "popup-list",
+        "single-entry-html": "single-entry",
+        "event-story-list": "event-story-list",
+        "rss-list": "rss-list",
+        "google-reader-frontpage": "google-reader-frontpage",
+    }.get(mode, "compatibility-only")
+
+
+def parity_checks(flags: dict[str, bool], params: list[str], variables: list[str]) -> list[str]:
+    checks = {"entry_count", "order", "title", "link_target", "category_title"}
+    if flags["uses_popup_overlay"]:
+        checks.add("popup_preview")
+    if flags["uses_event_story_route"]:
+        checks.add("event_story_route")
+    if flags["uses_disable_output_escaping"]:
+        checks.add("sanitized_html_body")
+    if "displayCount" in params or "displayCount" in variables:
+        checks.add("display_limit")
+    if flags["uses_bullet_images"]:
+        checks.add("bullet_or_icon_branding")
+    return sorted(checks)
 
 
 def xsl_children(root: ET.Element, name: str) -> list[ET.Element]:
@@ -129,6 +157,8 @@ def analyze_xslt(source_root: Path, path: Path) -> dict[str, object]:
         "sourcePath": rel_path(source_root, path),
         "presentationMode": mode,
         "migrationStatus": migration_status(mode),
+        "fixtureRole": fixture_role(mode),
+        "parityChecks": parity_checks(flags, params, variables),
         "parseError": parse_error,
         "output": output,
         "params": sorted(set(params)),
@@ -166,11 +196,23 @@ def build_matrix(config: MatrixConfig) -> dict[str, object]:
     ]
     mode_counts: dict[str, int] = {}
     status_counts: dict[str, int] = {}
+    fixture_counts: dict[str, int] = {}
     for record in records:
         mode = str(record["presentationMode"])
         status = str(record["migrationStatus"])
+        fixture = str(record["fixtureRole"])
         mode_counts[mode] = mode_counts.get(mode, 0) + 1
         status_counts[status] = status_counts.get(status, 0) + 1
+        fixture_counts[fixture] = fixture_counts.get(fixture, 0) + 1
+
+    required_fixtures = {
+        "atom-list",
+        "popup-list",
+        "single-entry",
+        "event-story-list",
+        "rss-list",
+        "google-reader-frontpage",
+    }
 
     return {
         "generatedAt": utc_now(),
@@ -179,6 +221,12 @@ def build_matrix(config: MatrixConfig) -> dict[str, object]:
         "recordCount": len(records),
         "presentationModeCounts": dict(sorted(mode_counts.items())),
         "migrationStatusCounts": dict(sorted(status_counts.items())),
+        "fixtureCoverage": {
+            "required": sorted(required_fixtures),
+            "covered": sorted(required_fixtures.intersection(fixture_counts)),
+            "missing": sorted(required_fixtures.difference(fixture_counts)),
+            "counts": dict(sorted(fixture_counts.items())),
+        },
         "transforms": records,
     }
 

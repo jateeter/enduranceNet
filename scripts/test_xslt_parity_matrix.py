@@ -65,6 +65,43 @@ class XsltParityMatrixTest(unittest.TestCase):
             </xsl:stylesheet>
             """,
         )
+        self._write_file(
+            "channels/xslTemplates/atomList.xsl",
+            """
+            <xsl:stylesheet xmlns:xsl='http://www.w3.org/1999/XSL/Transform'
+              xmlns:atom='http://www.w3.org/2005/Atom'>
+              <xsl:template match='/atom:feed'>
+                <xsl:for-each select='atom:entry'><xsl:value-of select='atom:title' /></xsl:for-each>
+              </xsl:template>
+            </xsl:stylesheet>
+            """,
+        )
+        self._write_file(
+            "channels/xslTemplates/singleEntry.xsl",
+            """
+            <xsl:stylesheet xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:template match='/'>
+                <xsl:value-of select='content' disable-output-escaping='yes' />
+              </xsl:template>
+            </xsl:stylesheet>
+            """,
+        )
+        self._write_file(
+            "2006WEC/EventStoryInternal.xsl",
+            """
+            <xsl:stylesheet xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:template match='/'>EventStoryInternal route</xsl:template>
+            </xsl:stylesheet>
+            """,
+        )
+        self._write_file(
+            "tevis/googleReaderFrontpage.xsl",
+            """
+            <xsl:stylesheet xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:template match='/'>Google Reader compatibility</xsl:template>
+            </xsl:stylesheet>
+            """,
+        )
 
     def test_matrix_classifies_legacy_presentation_modes(self) -> None:
         result = xslt_parity_matrix.main([
@@ -79,9 +116,29 @@ class XsltParityMatrixTest(unittest.TestCase):
         modes = {record["sourcePath"]: record["presentationMode"] for record in matrix["transforms"]}
         popup = next(record for record in matrix["transforms"] if record["sourcePath"].endswith("atomlist_popup.xsl"))
 
-        self.assertEqual(2, matrix["recordCount"])
+        self.assertEqual(6, matrix["recordCount"])
+        self.assertEqual([], matrix["fixtureCoverage"]["missing"])
+        self.assertEqual(
+            [
+                "atom-list",
+                "event-story-list",
+                "google-reader-frontpage",
+                "popup-list",
+                "rss-list",
+                "single-entry",
+            ],
+            matrix["fixtureCoverage"]["covered"],
+        )
+        self.assertEqual("atom-list", modes["channels/xslTemplates/atomList.xsl"])
+        self.assertEqual("single-entry-html", modes["channels/xslTemplates/singleEntry.xsl"])
+        self.assertEqual("event-story-list", modes["2006WEC/EventStoryInternal.xsl"])
+        self.assertEqual("google-reader-frontpage", modes["tevis/googleReaderFrontpage.xsl"])
         self.assertEqual("popup-channel-card", modes["channels/xslTemplates/atomlist_popup.xsl"])
         self.assertEqual("rss-list", modes["channels/xslTemplates/rssList.xsl"])
+        self.assertEqual("popup-list", popup["fixtureRole"])
+        self.assertEqual("migrated", popup["migrationStatus"])
+        self.assertIn("display_limit", popup["parityChecks"])
+        self.assertIn("popup_preview", popup["parityChecks"])
         self.assertTrue(popup["flags"]["uses_popup_overlay"])
         self.assertTrue(popup["flags"]["uses_bullet_images"])
         self.assertEqual(["displayCount"], popup["variables"])
