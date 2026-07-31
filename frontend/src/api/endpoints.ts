@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { Event, HomepageAsset, LegacyRedirect, News, Athlete, Result } from '../types';
+import type { Event, HomepageAsset, LegacyRedirect, News, Athlete, Result, StreamEntry, StreamSource } from '../types';
 
 export const fetchEvents = (): Promise<Event[]> =>
   apiClient.get<Event[]>('/events').then((r) => r.data);
@@ -18,6 +18,18 @@ export const fetchHomepageAssets = (): Promise<HomepageAsset[]> =>
 
 export const fetchLegacyRedirects = (): Promise<LegacyRedirect[]> =>
   apiClient.get<LegacyRedirect[]>('/legacy-redirects').then((r) => r.data);
+
+export const fetchStreamSources = (): Promise<StreamSource[]> =>
+  apiClient.get<StreamSource[]>('/streams').then((r) => r.data);
+
+export const fetchStreamSource = (slug: string): Promise<StreamSource> =>
+  apiClient.get<StreamSource>(`/streams/${slug}`).then((r) => r.data);
+
+export const fetchStreamEntries = (): Promise<StreamEntry[]> =>
+  apiClient.get<StreamEntry[]>('/stream-entries').then((r) => r.data);
+
+export const fetchStreamEntriesForSource = (slug: string): Promise<StreamEntry[]> =>
+  apiClient.get<StreamEntry[]>(`/streams/${slug}/entries`).then((r) => r.data);
 
 export const fetchAthletes = (): Promise<Athlete[]> =>
   apiClient.get<Athlete[]>('/athletes').then((r) => r.data);

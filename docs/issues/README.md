@@ -17,4 +17,8 @@ The published issues are:
 | `010-media-asset-pipeline.md` | https://github.com/jateeter/enduranceNet/issues/11 |
 | `011-legacy-url-redirects.md` | https://github.com/jateeter/enduranceNet/issues/12 |
 | `012-verification-and-coverage.md` | https://github.com/jateeter/enduranceNet/issues/13 |
-
+| `013-blogger-rss-stream-registry.md` | https://github.com/jateeter/enduranceNet/issues/35 |
+| `014-feed-importers-and-snapshots.md` | https://github.com/jateeter/enduranceNet/issues/39 |
+| `015-xslt-presentation-parity.md` | https://github.com/jateeter/enduranceNet/issues/36 |
+| `016-react-stream-presentations.md` | https://github.com/jateeter/enduranceNet/issues/37 |
+| `017-stream-media-cms-bridge.md` | https://github.com/jateeter/enduranceNet/issues/38 |

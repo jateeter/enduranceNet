@@ -40,6 +40,37 @@ export interface LegacyRedirect {
   reason: string;
 }
 
+export interface StreamSource {
+  id: number;
+  slug: string;
+  title: string;
+  provider: string;
+  feedFormat: string;
+  remoteUrl?: string;
+  localCachePath?: string;
+  legacyUrl?: string;
+  defaultPresentation: string;
+  active: boolean;
+  notes?: string;
+}
+
+export interface StreamEntry {
+  id: number;
+  sourceId: number;
+  providerEntryId: string;
+  title: string;
+  summaryHtml?: string;
+  contentHtml?: string;
+  author?: string;
+  publishedAt?: string;
+  updatedAt?: string;
+  alternateUrl?: string;
+  selfUrl?: string;
+  relatedUrl?: string;
+  commentsUrl?: string;
+  checksumSha256?: string;
+}
+
 export interface Athlete {
   id: number;
   name: string;
