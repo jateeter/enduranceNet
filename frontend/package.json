@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "test:asset-urls": "node scripts/check-legacy-asset-urls.mjs",
     "visual:streams": "node scripts/stream-presentation-visual-qa.mjs",
     "visual:production": "node scripts/production-visual-media-regression.mjs"
   },
