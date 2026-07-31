@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
-import { ExternalLink, Radio, Rss } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { BookOpen, ExternalLink, Radio, Rss } from 'lucide-react';
 import ErrorMessage from '../components/ErrorMessage';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { fetchStreamSources } from '../api/endpoints';
 import { useApi } from '../hooks/useApi';
 import type { StreamSource } from '../types';
+import { dateLabel, hostLabel } from '../utils/streamFormat';
 
 const groupOrder = [
   'Active News',
@@ -16,22 +18,6 @@ const groupOrder = [
   'Archive',
 ];
 
-function dateLabel(value?: string) {
-  if (!value) return 'Archive';
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value.slice(0, 10);
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(parsed);
-}
-
-function hostLabel(value?: string) {
-  if (!value) return 'Legacy cache';
-  try {
-    return new URL(value).hostname.replace(/^www\./, '');
-  } catch {
-    return value;
-  }
-}
-
 function StreamCard({ stream }: { stream: StreamSource }) {
   const rssUrl = stream.canonicalRssUrl ?? stream.remoteUrl;
   const atomUrl = stream.canonicalAtomUrl;
@@ -40,7 +26,7 @@ function StreamCard({ stream }: { stream: StreamSource }) {
     <article className={`stream-card${stream.active ? ' stream-card-active' : ''}`}>
       <header className="stream-card-header">
         <span className="stream-badge">{stream.streamGroup ?? 'Archive'}</span>
-        <h2>{stream.title}</h2>
+        <h2><Link to={`/streams/${stream.slug}`}>{stream.title}</Link></h2>
       </header>
       <dl className="stream-meta-grid">
         <div>
@@ -58,6 +44,10 @@ function StreamCard({ stream }: { stream: StreamSource }) {
       </dl>
       <div className="stream-source-path">{stream.localCachePath ?? 'Legacy feed registry'}</div>
       <footer className="stream-card-actions">
+        <Link to={`/streams/${stream.slug}`}>
+          <BookOpen size={15} />
+          Entries
+        </Link>
         {rssUrl && (
           <a href={rssUrl} target="_blank" rel="noreferrer">
             <Rss size={15} />
