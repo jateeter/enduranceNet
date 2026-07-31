@@ -71,6 +71,7 @@ services:
     restart: unless-stopped
     volumes:
       - ${LEGACY_MEDIA_ROOT:-/Volumes/webstore/endurance.net}:/var/www/legacy-media:ro
+      - ${CMS_MEDIA_ROOT:-./migration/media/images}:/var/www/cms-media:ro
     ports:
       - "80:80"
     environment:

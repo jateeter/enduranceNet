@@ -46,6 +46,9 @@ migration/media/*
 !migration/media/legacy-media/
 migration/media/legacy-media/*
 !migration/media/legacy-media/.gitkeep
+!migration/media/images/
+migration/media/images/*
+!migration/media/images/.gitkeep
 
 # Local visual verification artifacts
 output/playwright/

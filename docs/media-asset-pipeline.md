@@ -81,18 +81,39 @@ asset kind filter, the max asset limit, and whether the manifest is bounded.
 
 ## Runtime URL Contract
 
-The Docker/Nginx stack serves `/legacy-media/<source-path>` from a read-only
-mount at `/var/www/legacy-media/`. The default compose mount uses the local live
-source tree at `/Volumes/webstore/endurance.net`. Set `LEGACY_MEDIA_ROOT` when
-running somewhere else, or when serving from a copied media artifact directory:
+The Docker/Nginx stack serves compatibility and migrated media from explicit
+read-only roots:
+
+| Public URL | Container alias | Host variable | Default |
+| --- | --- | --- | --- |
+| `/legacy-media/<source-path>` | `/var/www/legacy-media/<source-path>` | `LEGACY_MEDIA_ROOT` | `/Volumes/webstore/endurance.net` |
+| `/media/<asset-id>/<filename>` | `/var/www/cms-media/legacy/<asset-id>/<filename>` | `CMS_MEDIA_ROOT` | `./migration/media/images` |
+
+The `/media/...` alias matches the generator's `cms_storage_key` value
+`legacy/<asset-id>/<filename>`. That lets staged CMS media serve through stable
+React-facing URLs now, and keeps the same public route available later if the
+backing store moves to Directus-managed files or object storage.
+
+Set both roots before running containerized deployments:
 
 ```bash
-LEGACY_MEDIA_ROOT=/Volumes/webstore/endurance.net docker compose up --build
+LEGACY_MEDIA_ROOT=/Volumes/webstore/endurance.net \
+CMS_MEDIA_ROOT=./migration/media/images \
+docker compose up --build
 ```
 
-The repo includes `migration/media/legacy-media/.gitkeep` only as an empty
-local placeholder. Historical images, documents, audio, and video must not be
-committed to git.
+Validate the roots and, when a staged manifest is available, representative
+legacy and CMS image mappings:
+
+```bash
+python3 scripts/check_media_roots.py
+python3 scripts/check_media_roots.py --manifest migration/media/images/media-manifest.jsonl --sample-size 10 --base-url http://localhost
+```
+
+`scripts/deploy.sh` runs the root-only check before rebuilding containers so
+missing mounts fail clearly. The repo includes only `.gitkeep` placeholders
+under `migration/media/legacy-media/` and `migration/media/images/`. Historical
+images, documents, audio, and video must not be committed to git.
 
 ## Waivers
 
