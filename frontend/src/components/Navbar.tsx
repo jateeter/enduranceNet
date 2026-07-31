@@ -6,10 +6,12 @@ import { legacyAssetUrl } from '../utils/legacyAssets';
 const navLinks = [
   { to: '/', label: 'Home' },
   { to: '/news', label: 'Current News' },
-  { to: '/featured-stories', label: 'Featured Stories' },
+  { to: '/featured-stories', label: 'News Archive' },
+  { to: '/community#advertisers', label: 'Shop/Advertise' },
+  { to: '/community#ridecamp', label: 'Ridecamp' },
+  { to: '/community#classifieds', label: 'Classified' },
   { to: '/events', label: 'Events' },
-  { to: '/community', label: 'Community' },
-  { to: '/results', label: 'Results' },
+  { to: '/athletes', label: 'Learn/AERC' },
 ];
 
 export default function Navbar() {
