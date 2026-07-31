@@ -12,6 +12,7 @@ const navLinks = [
   { to: '/community#classifieds', label: 'Classified' },
   { to: '/streams', label: 'Streams' },
   { to: '/events', label: 'Events' },
+  { to: '/galleries', label: 'Photos' },
   { to: '/athletes', label: 'Learn/AERC' },
 ];
 

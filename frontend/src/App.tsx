@@ -11,6 +11,8 @@ import LegacyRedirectPage from './pages/LegacyRedirectPage';
 import AthletesPage from './pages/AthletesPage';
 import AthleteDetailPage from './pages/AthleteDetailPage';
 import ResultsPage from './pages/ResultsPage';
+import GalleriesPage from './pages/GalleriesPage';
+import GalleryDetailPage from './pages/GalleryDetailPage';
 import CommunityArchivePage from './pages/CommunityArchivePage';
 import StreamsPage from './pages/StreamsPage';
 import StreamDetailPage from './pages/StreamDetailPage';
@@ -38,6 +40,8 @@ function App() {
             <Route path="/athletes" element={<AthletesPage />} />
             <Route path="/athletes/:id" element={<AthleteDetailPage />} />
             <Route path="/results" element={<ResultsPage />} />
+            <Route path="/galleries" element={<GalleriesPage />} />
+            <Route path="/galleries/:slug" element={<GalleryDetailPage />} />
             <Route path="/community" element={<CommunityArchivePage />} />
             <Route path="/streams" element={<StreamsPage />} />
             <Route path="/streams/search" element={<StreamSearchPage />} />
