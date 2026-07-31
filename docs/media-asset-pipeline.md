@@ -44,6 +44,7 @@ Fixture smoke test:
 
 ```bash
 python3 scripts/test_media_asset_manifest.py
+python3 scripts/test_cms_image_handoff.py
 ```
 
 Generated files are intentionally ignored under `migration/media/`:
@@ -114,6 +115,18 @@ python3 scripts/check_media_roots.py --manifest migration/media/images/media-man
 missing mounts fail clearly. The repo includes only `.gitkeep` placeholders
 under `migration/media/legacy-media/` and `migration/media/images/`. Historical
 images, documents, audio, and video must not be committed to git.
+
+## CMS Image Handoff
+
+After generating an image-only manifest, build Directus/CMS review bundles:
+
+```bash
+python3 scripts/cms_image_handoff.py --media-dir migration/media/images
+```
+
+See `docs/cms-image-review-workflow.md` for the Directus collection model,
+immutable provenance fields, editable review fields, blocker handling, and
+duplicate-image review flow.
 
 ## Waivers
 
