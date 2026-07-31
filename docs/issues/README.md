@@ -31,3 +31,8 @@ The published issues are:
 | `024-scheduled-blogger-polling-worker.md` | https://github.com/jateeter/enduranceNet/issues/57 |
 | `025-archival-rss-corpus-import.md` | https://github.com/jateeter/enduranceNet/issues/58 |
 | `026-production-visual-and-media-regression.md` | https://github.com/jateeter/enduranceNet/issues/59 |
+| `027-image-only-corpus-staging.md` | https://github.com/jateeter/enduranceNet/issues/66 |
+| `028-image-serving-and-url-contract.md` | https://github.com/jateeter/enduranceNet/issues/67 |
+| `029-frontend-image-url-rewrite-coverage.md` | https://github.com/jateeter/enduranceNet/issues/68 |
+| `030-cms-image-sync-and-review.md` | https://github.com/jateeter/enduranceNet/issues/69 |
+| `031-image-release-verification.md` | https://github.com/jateeter/enduranceNet/issues/70 |
