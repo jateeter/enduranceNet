@@ -9,6 +9,7 @@ records into an ignored staging SQLite database, and emits actionable reports.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html.parser
 import json
 import os
@@ -20,9 +21,11 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
 
 
-PARSER_VERSION = "legacy-import-v2"
+PARSER_VERSION = "legacy-import-v3"
 MAX_TEXT_BYTES = 512 * 1024
 MAX_DOMAIN_TEXT_BYTES = 64 * 1024
 MEDIA_EXTENSIONS = {
@@ -41,6 +44,16 @@ class ImportConfig:
     staging_db: Path
     max_records: int | None
     reset: bool
+    poll_active: bool
+
+
+@dataclass(frozen=True)
+class FetchResult:
+    url: str
+    status: int
+    body: str
+    etag: str | None = None
+    last_modified: str | None = None
 
 
 class LinkExtractor(html.parser.HTMLParser):
@@ -95,6 +108,10 @@ def read_text_limited(path: Path, max_bytes: int) -> str:
     if len(data) > max_bytes:
         data = data[:max_bytes]
     return data.decode("utf-8", errors="replace")
+
+
+def checksum_text(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8", errors="replace")).hexdigest()
 
 
 def normalize_legacy_url(path: str) -> str:
@@ -242,6 +259,39 @@ def init_db(config: ImportConfig) -> sqlite3.Connection:
           next_url TEXT,
           entry_count INTEGER NOT NULL,
           checksum_sha256 TEXT,
+          import_batch_id TEXT NOT NULL,
+          parser_version TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS stream_raw_snapshots (
+          snapshot_id TEXT PRIMARY KEY,
+          source_path TEXT NOT NULL,
+          source_kind TEXT NOT NULL,
+          fetch_url TEXT,
+          fetched_at TEXT NOT NULL,
+          http_status INTEGER,
+          etag TEXT,
+          last_modified TEXT,
+          checksum_sha256 TEXT,
+          raw_text TEXT NOT NULL,
+          import_batch_id TEXT NOT NULL,
+          parser_version TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS stream_poll_targets (
+          source_path TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          provider TEXT NOT NULL,
+          feed_format TEXT NOT NULL,
+          poll_url TEXT,
+          next_url TEXT,
+          local_cache_path TEXT NOT NULL,
+          active INTEGER NOT NULL,
+          poll_status TEXT NOT NULL,
+          blocker TEXT,
+          last_checksum_sha256 TEXT,
+          etag TEXT,
+          last_modified TEXT,
           import_batch_id TEXT NOT NULL,
           parser_version TEXT NOT NULL
         );
@@ -693,6 +743,7 @@ def insert_stream_source(
     out: sqlite3.Connection,
     batch_id: str,
     source_path: str,
+    source_text: str,
     root: ET.Element,
     entries: list[ET.Element],
     outlines: list[ET.Element],
@@ -747,6 +798,250 @@ def insert_stream_source(
             PARSER_VERSION,
         ),
     )
+    out.execute(
+        """
+        INSERT OR REPLACE INTO stream_raw_snapshots (
+          snapshot_id, source_path, source_kind, fetch_url, fetched_at,
+          http_status, etag, last_modified, checksum_sha256, raw_text,
+          import_batch_id, parser_version
+        ) VALUES (?, ?, 'local-cache', ?, ?, NULL, NULL, NULL, ?, ?, ?, ?)
+        """,
+        (
+            f"local:{source_path}:{checksum}",
+            source_path,
+            remote_url,
+            utc_now(),
+            checksum,
+            source_text,
+            batch_id,
+            PARSER_VERSION,
+        ),
+    )
+    insert_stream_poll_target(
+        out,
+        batch_id,
+        source_path,
+        title,
+        provider,
+        detected_format,
+        remote_url,
+        links.get("next"),
+        checksum,
+        1 if provider in {"blogger", "rss", "atom"} and bool(remote_url) else 0,
+    )
+
+
+def canonical_poll_url(provider: str, remote_url: str | None) -> str | None:
+    if not remote_url:
+        return None
+    if provider != "blogger":
+        return remote_url
+    secure = remote_url.replace("http://www.blogger.com/", "https://www.blogger.com/")
+    if "alt=" in secure:
+        return secure
+    separator = "&" if "?" in secure else "?"
+    return f"{secure}{separator}alt=rss"
+
+
+def insert_stream_poll_target(
+    out: sqlite3.Connection,
+    batch_id: str,
+    source_path: str,
+    title: str,
+    provider: str,
+    detected_format: str,
+    remote_url: str | None,
+    next_url: str | None,
+    checksum: object,
+    active: int,
+) -> None:
+    poll_url = canonical_poll_url(provider, remote_url)
+    blocker = None if active and poll_url else "no remote poll URL discovered from local feed snapshot"
+    out.execute(
+        """
+        INSERT OR REPLACE INTO stream_poll_targets (
+          source_path, title, provider, feed_format, poll_url, next_url,
+          local_cache_path, active, poll_status, blocker, last_checksum_sha256,
+          etag, last_modified, import_batch_id, parser_version
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?)
+        """,
+        (
+            source_path,
+            title,
+            provider,
+            detected_format,
+            poll_url,
+            next_url,
+            source_path,
+            active,
+            "ready" if active and poll_url else "blocked",
+            blocker,
+            checksum,
+            batch_id,
+            PARSER_VERSION,
+        ),
+    )
+
+
+def fetch_stream_url(url: str, etag: str | None = None, last_modified: str | None = None) -> FetchResult:
+    headers = {"User-Agent": "EnduranceNetNextGenImporter/1.0"}
+    if etag:
+        headers["If-None-Match"] = etag
+    if last_modified:
+        headers["If-Modified-Since"] = last_modified
+    request = Request(url, headers=headers)
+    try:
+        with urlopen(request, timeout=30) as response:
+            body = response.read(MAX_TEXT_BYTES).decode("utf-8", errors="replace")
+            return FetchResult(
+                url=response.geturl(),
+                status=getattr(response, "status", 200),
+                body=body,
+                etag=response.headers.get("ETag"),
+                last_modified=response.headers.get("Last-Modified"),
+            )
+    except HTTPError as exc:
+        if exc.code == 304:
+            return FetchResult(url=url, status=304, body="", etag=etag, last_modified=last_modified)
+        raise
+
+
+def insert_raw_stream_snapshot(
+    out: sqlite3.Connection,
+    batch_id: str,
+    source_path: str,
+    source_kind: str,
+    fetch_url: str | None,
+    http_status: int | None,
+    etag: str | None,
+    last_modified: str | None,
+    checksum: str | None,
+    source_text: str,
+) -> None:
+    snapshot_id = f"{source_kind}:{source_path}:{checksum or 'no-checksum'}"
+    out.execute(
+        """
+        INSERT OR REPLACE INTO stream_raw_snapshots (
+          snapshot_id, source_path, source_kind, fetch_url, fetched_at,
+          http_status, etag, last_modified, checksum_sha256, raw_text,
+          import_batch_id, parser_version
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            snapshot_id,
+            source_path,
+            source_kind,
+            fetch_url,
+            utc_now(),
+            http_status,
+            etag,
+            last_modified,
+            checksum,
+            source_text,
+            batch_id,
+            PARSER_VERSION,
+        ),
+    )
+
+
+def poll_active_streams(
+    out: sqlite3.Connection,
+    batch_id: str,
+    fetcher=fetch_stream_url,
+) -> int:
+    targets = rows(
+        out,
+        """
+        SELECT source_path, poll_url, etag, last_modified
+        FROM stream_poll_targets
+        WHERE active = 1
+          AND poll_status = 'ready'
+          AND poll_url IS NOT NULL
+        ORDER BY source_path
+        """,
+    )
+    imported = 0
+    for target in targets:
+        source_path = str(target["source_path"])
+        poll_url = str(target["poll_url"])
+        try:
+            result = fetcher(poll_url, target.get("etag"), target.get("last_modified"))
+            if result.status == 304:
+                continue
+            root = ET.fromstring(result.body)
+            entries = feed_entry_elements(root)
+            outlines = opml_outline_elements(root)
+            links = atom_link_map(root)
+            checksum = checksum_text(result.body)
+            insert_raw_stream_snapshot(
+                out,
+                batch_id,
+                source_path,
+                "remote-poll",
+                result.url,
+                result.status,
+                result.etag,
+                result.last_modified,
+                checksum,
+                result.body,
+            )
+            out.execute(
+                """
+                INSERT OR REPLACE INTO stream_snapshots (
+                  source_path, root_tag, feed_id, title, self_url, alternate_url,
+                  next_url, entry_count, checksum_sha256, import_batch_id, parser_version
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    source_path,
+                    local_name(root.tag),
+                    text_of(root, ("id",)),
+                    feed_title(root, source_path),
+                    links.get("self"),
+                    links.get("alternate"),
+                    links.get("next"),
+                    len(entries) if entries else len(outlines),
+                    checksum,
+                    batch_id,
+                    PARSER_VERSION,
+                ),
+            )
+            for index, entry in enumerate(entries):
+                insert_stream_entry(out, batch_id, source_path, index, entry)
+                imported += 1
+            for index, outline in enumerate(outlines):
+                insert_stream_outline(out, batch_id, source_path, index, outline)
+                imported += 1
+            out.execute(
+                """
+                UPDATE stream_poll_targets
+                SET next_url = ?, poll_status = 'ready', blocker = NULL,
+                    last_checksum_sha256 = ?, etag = ?, last_modified = ?,
+                    import_batch_id = ?, parser_version = ?
+                WHERE source_path = ?
+                """,
+                (
+                    links.get("next"),
+                    checksum,
+                    result.etag,
+                    result.last_modified,
+                    batch_id,
+                    PARSER_VERSION,
+                    source_path,
+                ),
+            )
+        except Exception as exc:
+            record_failure(out, batch_id, source_path, "stream-poll", exc)
+            out.execute(
+                """
+                UPDATE stream_poll_targets
+                SET poll_status = 'blocked', blocker = ?, import_batch_id = ?,
+                    parser_version = ?
+                WHERE source_path = ?
+                """,
+                (f"{type(exc).__name__}: {exc}", batch_id, PARSER_VERSION, source_path),
+            )
+    return imported
 
 
 def insert_stream_entry(
@@ -842,11 +1137,12 @@ def import_feeds(inv: sqlite3.Connection, out: sqlite3.Connection, config: Impor
         source_path = str(row["path"])
         source_file = config.source_root / source_path
         try:
-            root = ET.fromstring(read_text(source_file))
+            source_text = read_text(source_file)
+            root = ET.fromstring(source_text)
             entries = feed_entry_elements(root)
             outlines = opml_outline_elements(root)
             item_count = len(entries) if entries else len(outlines)
-            insert_stream_source(inv, out, batch_id, source_path, root, entries, outlines)
+            insert_stream_source(inv, out, batch_id, source_path, source_text, root, entries, outlines)
             out.execute(
                 """
                 INSERT OR REPLACE INTO structured_data_files (
@@ -1134,6 +1430,10 @@ def write_reports(out: sqlite3.Connection, config: ImportConfig, batch_id: str) 
         "feed_entries": one(out, "SELECT COUNT(*) FROM feed_entries"),
         "stream_sources": one(out, "SELECT COUNT(*) FROM stream_sources"),
         "stream_snapshots": one(out, "SELECT COUNT(*) FROM stream_snapshots"),
+        "stream_raw_snapshots": one(out, "SELECT COUNT(*) FROM stream_raw_snapshots"),
+        "stream_poll_targets": one(out, "SELECT COUNT(*) FROM stream_poll_targets"),
+        "stream_poll_ready": one(out, "SELECT COUNT(*) FROM stream_poll_targets WHERE poll_status = 'ready'"),
+        "stream_poll_blocked": one(out, "SELECT COUNT(*) FROM stream_poll_targets WHERE poll_status = 'blocked'"),
         "stream_entries_v2": one(out, "SELECT COUNT(*) FROM stream_entries_v2"),
         "structured_data_files": one(out, "SELECT COUNT(*) FROM structured_data_files"),
         "media_references": one(out, "SELECT COUNT(*) FROM media_references"),
@@ -1177,6 +1477,7 @@ def parse_args(argv: list[str]) -> ImportConfig:
     parser.add_argument("--source-root", default="/Volumes/webstore/endurance.net")
     parser.add_argument("--output-dir", default="migration/imports")
     parser.add_argument("--max-records", type=int, help="Limit legacy_source_file imports for smoke tests.")
+    parser.add_argument("--poll-active", action="store_true", help="Fetch ready active stream poll targets after local import.")
     parser.add_argument("--reset", action="store_true", help="Delete existing staging DB first.")
     args = parser.parse_args(argv)
     output_dir = Path(args.output_dir).resolve()
@@ -1187,6 +1488,7 @@ def parse_args(argv: list[str]) -> ImportConfig:
         staging_db=output_dir / "legacy-import.sqlite",
         max_records=args.max_records,
         reset=args.reset,
+        poll_active=args.poll_active,
     )
 
 
@@ -1207,6 +1509,7 @@ def main(argv: list[str]) -> int:
         media_count = import_media_assets(inv, out, batch_id, config.max_records)
         template_count = import_templates(inv, out, config, batch_id)
         feed_count = import_feeds(inv, out, config, batch_id)
+        poll_count = poll_active_streams(out, batch_id) if config.poll_active else 0
         gallery_count = import_gallery_manifests(inv, out, config, batch_id)
         advertiser_count = import_advertisers(inv, out, config, batch_id)
         classified_count = import_classifieds(inv, out, config, batch_id)
@@ -1214,7 +1517,7 @@ def main(argv: list[str]) -> int:
         failures = int(one(out, "SELECT COUNT(*) FROM import_failures WHERE batch_id = ?", (batch_id,)) or 0)
         records_imported = (
             source_count + media_count + template_count + feed_count
-            + gallery_count + advertiser_count + classified_count + ridecamp_count
+            + poll_count + gallery_count + advertiser_count + classified_count + ridecamp_count
         )
         out.execute(
             """

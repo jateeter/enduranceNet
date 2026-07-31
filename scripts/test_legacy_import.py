@@ -185,6 +185,8 @@ class LegacyImportTest(unittest.TestCase):
         self.assertEqual(3, self._count("feed_entries"))
         self.assertEqual(4, self._count("stream_sources"))
         self.assertEqual(4, self._count("stream_snapshots"))
+        self.assertEqual(4, self._count("stream_raw_snapshots"))
+        self.assertEqual(4, self._count("stream_poll_targets"))
         self.assertEqual(3, self._count("stream_entries_v2"))
         self.assertEqual(4, self._count("structured_data_files"))
         self.assertEqual(1, self._count("advertiser_records"))
@@ -213,6 +215,27 @@ class LegacyImportTest(unittest.TestCase):
                 WHERE source_path = 'channels/whereintheworld/atom.xml'
                 """
             ).fetchone()
+            poll_target = conn.execute(
+                """
+                SELECT poll_url, next_url, poll_status, blocker
+                FROM stream_poll_targets
+                WHERE source_path = 'channels/whereintheworld/atom.xml'
+                """
+            ).fetchone()
+            blocked_target = conn.execute(
+                """
+                SELECT poll_status, blocker
+                FROM stream_poll_targets
+                WHERE source_path = 'channels/news.xml'
+                """
+            ).fetchone()
+            raw_snapshot = conn.execute(
+                """
+                SELECT source_kind, http_status, etag, last_modified, raw_text
+                FROM stream_raw_snapshots
+                WHERE source_path = 'channels/whereintheworld/atom.xml'
+                """
+            ).fetchone()
 
         self.assertEqual(legacy_import.PARSER_VERSION, parser_version)
         self.assertEqual(2, failures)
@@ -227,6 +250,83 @@ class LegacyImportTest(unittest.TestCase):
             ),
             stream_entry,
         )
+        self.assertEqual(
+            (
+                "https://www.blogger.com/feeds/7290526037745122441/posts/default?alt=rss",
+                "http://www.blogger.com/feeds/7290526037745122441/posts/default?start-index=26",
+                "ready",
+                None,
+            ),
+            poll_target,
+        )
+        self.assertEqual(("blocked", "no remote poll URL discovered from local feed snapshot"), blocked_target)
+        self.assertEqual("local-cache", raw_snapshot[0])
+        self.assertIsNone(raw_snapshot[1])
+        self.assertIsNone(raw_snapshot[2])
+        self.assertIsNone(raw_snapshot[3])
+        self.assertIn("Where in the World", raw_snapshot[4])
+
+    def test_active_stream_polling_is_idempotent_and_updates_snapshot_metadata(self) -> None:
+        self._run_import(reset=True)
+
+        polled_body = """
+        <feed xmlns='http://www.w3.org/2005/Atom'>
+          <id>tag:blogger.com,1999:blog-7290526037745122441</id>
+          <title>Where in the World</title>
+          <generator>Blogger</generator>
+          <link rel='self' href='https://www.blogger.com/feeds/7290526037745122441/posts/default?alt=rss' />
+          <entry>
+            <id>tag:blogger.com,1999:blog-7290526037745122441.post-123</id>
+            <title>Travel Dispatch Updated</title>
+            <updated>2026-07-31T00:00:00Z</updated>
+            <link rel='alternate' href='http://feeds.endurance.net/whereintheworld/travel-dispatch.html' />
+          </entry>
+        </feed>
+        """
+        fetched: list[tuple[str, object, object]] = []
+
+        def fake_fetcher(url: str, etag: object = None, last_modified: object = None) -> object:
+            fetched.append((url, etag, last_modified))
+            return legacy_import.FetchResult(
+                url=url,
+                status=200,
+                body=polled_body,
+                etag='"poll-etag"',
+                last_modified="Fri, 31 Jul 2026 00:00:00 GMT",
+            )
+
+        with sqlite3.connect(self.output_dir / "legacy-import.sqlite") as conn:
+            batch_id = conn.execute("SELECT id FROM import_batches ORDER BY started_at DESC LIMIT 1").fetchone()[0]
+            self.assertEqual(1, legacy_import.poll_active_streams(conn, batch_id, fake_fetcher))
+            self.assertEqual(1, legacy_import.poll_active_streams(conn, batch_id, fake_fetcher))
+            conn.commit()
+
+            stream_entry_count = conn.execute(
+                "SELECT COUNT(*) FROM stream_entries_v2 WHERE source_path = 'channels/whereintheworld/atom.xml'"
+            ).fetchone()[0]
+            raw_snapshot_count = conn.execute(
+                "SELECT COUNT(*) FROM stream_raw_snapshots WHERE source_path = 'channels/whereintheworld/atom.xml'"
+            ).fetchone()[0]
+            poll_target = conn.execute(
+                """
+                SELECT poll_status, blocker, etag, last_modified, last_checksum_sha256
+                FROM stream_poll_targets
+                WHERE source_path = 'channels/whereintheworld/atom.xml'
+                """
+            ).fetchone()
+
+        self.assertEqual(2, len(fetched))
+        self.assertEqual(
+            "https://www.blogger.com/feeds/7290526037745122441/posts/default?alt=rss",
+            fetched[0][0],
+        )
+        self.assertEqual(1, stream_entry_count)
+        self.assertEqual(2, raw_snapshot_count)
+        self.assertEqual("ready", poll_target[0])
+        self.assertIsNone(poll_target[1])
+        self.assertEqual('"poll-etag"', poll_target[2])
+        self.assertEqual("Fri, 31 Jul 2026 00:00:00 GMT", poll_target[3])
+        self.assertIsNotNone(poll_target[4])
 
 
 if __name__ == "__main__":
