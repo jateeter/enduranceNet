@@ -150,3 +150,57 @@ Every staging record keeps source path, legacy URL, parser version, import
 batch ID, and checksum when available. Import failures are recorded without
 aborting the batch so coverage reports can compare imported records to the
 source inventory and expose remaining domain backlogs.
+
+## Postgres Seed Evolution Workflow
+
+The running Scala/Postgres app is seeded through Play evolutions under
+`backend/conf/evolutions/default/`. After refreshing RSS/Blogger staging data,
+generate a new evolution instead of manually editing SQL.
+
+Refresh cached feeds from the legacy filesystem:
+
+```bash
+python3 scripts/legacy_import.py --feeds-only
+```
+
+Refresh live pollable streams and keep a complete target report:
+
+```bash
+python3 scripts/poll_active_streams.py --allow-target-failures
+```
+
+Generate the next backend seed evolution from the refreshed staging DB:
+
+```bash
+python3 scripts/generate_stream_evolution.py \
+  --staging-db migration/imports/legacy-import.sqlite \
+  --output backend/conf/evolutions/default/11.sql
+```
+
+The generated evolution deletes the previous `stream_entries` and
+`stream_sources` seed rows, then inserts presentation-ready stream sources and
+entries. It intentionally filters the broad XML staging corpus down to stream
+providers that belong in the review UI: Blogger, RSS, Atom, and OPML.
+
+Current editorial streams are marked active only for the six legacy current
+feeds: World News, USA News, Snapshots, Consider This, Ride Stories, and Trails
+Matter. Other pollable historical feeds remain available as archival streams.
+
+Validate the seed before deployment:
+
+```bash
+python3 scripts/test_generate_stream_evolution.py
+npm run build --prefix frontend
+cd backend && sbt test
+```
+
+Apply the evolution to the local Scala/Postgres deployment by rebuilding and
+starting the stack:
+
+```bash
+docker compose -f docker-compose.yml -f /private/tmp/endurancenet-local-compose.yml up -d --build
+```
+
+For an existing database that has already applied the same evolution number,
+create a new numbered evolution from the latest staging database. Do not edit a
+previously applied evolution in place on a persistent Postgres volume.

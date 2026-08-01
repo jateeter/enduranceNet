@@ -7,6 +7,7 @@ import { fetchStreamSources } from '../api/endpoints';
 import { useApi } from '../hooks/useApi';
 import type { StreamSource } from '../types';
 import { dateLabel, hostLabel } from '../utils/streamFormat';
+import { streamPresentationLabel, streamPresentationXslt } from '../utils/streamPresentation';
 
 const groupOrder = [
   'Active News',
@@ -43,6 +44,10 @@ function StreamCard({ stream }: { stream: StreamSource }) {
         </div>
       </dl>
       <div className="stream-source-path">{stream.localCachePath ?? 'Legacy feed registry'}</div>
+      <div className="stream-transform-profile">
+        <span>{streamPresentationLabel(stream)}</span>
+        <small>{streamPresentationXslt(stream).join(', ')}</small>
+      </div>
       <footer className="stream-card-actions">
         <Link to={`/streams/${stream.slug}`}>
           <BookOpen size={15} />
@@ -74,7 +79,7 @@ function StreamCard({ stream }: { stream: StreamSource }) {
 export default function StreamsPage() {
   const { data, loading, error } = useApi(fetchStreamSources);
   const [selectedGroup, setSelectedGroup] = useState('Active News');
-  const streams = data?.filter((stream) => stream.provider === 'blogger') ?? [];
+  const streams = useMemo(() => data ?? [], [data]);
   const groups = useMemo(() => {
     const present = new Set(streams.map((stream) => stream.streamGroup ?? 'Archive'));
     return groupOrder.filter((group) => present.has(group));

@@ -7,7 +7,7 @@ import { fetchStreamEntriesForSource, fetchStreamSource } from '../api/endpoints
 import { useApi } from '../hooks/useApi';
 import type { StreamSource } from '../types';
 import { dateLabel, hostLabel, sourceRssUrl } from '../utils/streamFormat';
-import { streamPresentationLabel } from '../utils/streamPresentation';
+import { streamPresentationLabel, streamPresentationXslt } from '../utils/streamPresentation';
 
 function StreamActionLinks({ stream }: { stream: StreamSource }) {
   const rssUrl = sourceRssUrl(stream);
@@ -106,6 +106,10 @@ export default function StreamDetailPage() {
           </dl>
 
           <StreamActionLinks stream={stream} />
+          <div className="stream-transform-profile stream-detail-transform-profile">
+            <span>{streamPresentationLabel(stream)}</span>
+            <small>{streamPresentationXslt(stream).join(', ')}</small>
+          </div>
 
           {entries && entries.length > 0 ? (
             <section className="stream-entry-list" aria-label={`${stream.title} entries`}>

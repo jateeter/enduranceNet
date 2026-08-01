@@ -45,12 +45,12 @@ class StreamControllerSpec extends PlaySpec with GuiceOneAppPerTest with Injecti
   "StreamController#entriesForSource" should {
     "return entries for a stream source" in {
       val controller = inject[StreamController]
-      val result = controller.entriesForSource("wec-news").apply(FakeRequest(GET, "/api/streams/wec-news/entries"))
+      val result = controller.entriesForSource("wec-reports").apply(FakeRequest(GET, "/api/streams/wec-reports/entries"))
       val json = contentAsJson(result)
 
       status(result) mustBe OK
-      (json \\ "providerEntryId").map(_.as[String]) must contain("tag:blogger.com,1999:blog-6751438")
-      (json \\ "title").map(_.as[String]) must contain("2006 WEC Blogger archive")
+      (json \\ "providerEntryId").map(_.as[String]) must contain("tag:blogger.com,1999:blog-6751438.post-5543622793139836893")
+      (json \\ "title").map(_.as[String]) must contain("2026 Qualification Calendar: The Road to AlUla")
     }
   }
 
@@ -61,8 +61,8 @@ class StreamControllerSpec extends PlaySpec with GuiceOneAppPerTest with Injecti
       val json = contentAsJson(result)
 
       status(result) mustBe OK
-      (json \\ "title").map(_.as[String]) must contain("2006 WEC Blogger archive")
-      (json \\ "slug").map(_.as[String]) must contain("wec-news")
+      (json \\ "title").map(_.as[String]) must contain("2026 Qualification Calendar: The Road to AlUla")
+      (json \\ "slug").map(_.as[String]) must contain("wec-reports")
       (json \\ "streamGroup").map(_.as[String]) must contain("Event & Team Archives")
     }
 

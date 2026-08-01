@@ -1,7 +1,12 @@
 import { ExternalLink } from 'lucide-react';
 import type { StreamEntry, StreamSource } from '../types';
 import { dateLabel, htmlToText, sourceRssUrl } from '../utils/streamFormat';
-import { streamPresentationClass, streamPresentationLabel } from '../utils/streamPresentation';
+import {
+  streamPresentationClass,
+  streamPresentationCta,
+  streamPresentationLabel,
+  streamPresentationSummaryLimit,
+} from '../utils/streamPresentation';
 
 interface StreamEntryCardProps {
   entry: StreamEntry;
@@ -10,9 +15,14 @@ interface StreamEntryCardProps {
 }
 
 export default function StreamEntryCard({ entry, stream, showStreamTitle = true }: StreamEntryCardProps) {
-  const summary = htmlToText(entry.summaryHtml ?? entry.contentHtml) || 'No imported summary is available for this entry yet.';
+  const summaryLimit = streamPresentationSummaryLimit(stream);
+  const importedSummary = htmlToText(entry.summaryHtml ?? entry.contentHtml);
+  const summary = importedSummary.length > summaryLimit
+    ? `${importedSummary.slice(0, summaryLimit).trim()}...`
+    : importedSummary || 'No imported summary is available for this entry yet.';
   const entryUrl = entry.alternateUrl ?? entry.relatedUrl ?? stream.legacyUrl ?? sourceRssUrl(stream);
   const presentationLabel = streamPresentationLabel(stream);
+  const ctaLabel = streamPresentationCta(stream);
 
   return (
     <article className={`stream-entry-card ${streamPresentationClass(stream)}`} tabIndex={0}>
@@ -35,7 +45,7 @@ export default function StreamEntryCard({ entry, stream, showStreamTitle = true 
         <span>{showStreamTitle ? stream.title : stream.streamGroup ?? 'Archive'}</span>
         {entryUrl && (
           <a href={entryUrl} target="_blank" rel="noreferrer">
-            Read story
+            {ctaLabel}
             <ExternalLink size={14} />
           </a>
         )}
