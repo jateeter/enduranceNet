@@ -66,9 +66,10 @@ ul { list-style: none; }
   padding: 0 1.2rem;
   overflow: hidden;
   color: #ffffff;
-  background:
-    linear-gradient(90deg, rgba(6, 83, 164, 0.95), rgba(13, 92, 50, 0.88)),
-    var(--color-primary);
+  background-color: #12205d;
+  background-image: url('/media/site/masthead-background-v1.jpg');
+  background-position: center;
+  background-size: cover;
 }
 .masthead:hover {
   color: #ffffff;
@@ -76,14 +77,18 @@ ul { list-style: none; }
 }
 .masthead-title {
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 2.55rem;
+  margin-left: 8.5rem;
+  font-size: 2.75rem;
   font-weight: 700;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.65);
 }
 .masthead-subtitle {
   max-width: 32rem;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.98rem;
+  color: rgba(255, 255, 255, 0.96);
+  font-size: 2.05rem;
+  font-weight: 700;
   text-align: right;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.72);
 }
 .navbar-inner {
   max-width: 1352px;
@@ -1896,10 +1901,13 @@ ul { list-style: none; }
     height: 64px;
     padding: 0 0.8rem;
   }
-  .masthead-title { font-size: 1.55rem; }
+  .masthead-title {
+    margin-left: 3.6rem;
+    font-size: 1.65rem;
+  }
   .masthead-subtitle {
-    max-width: 11rem;
-    font-size: 0.72rem;
+    max-width: 8rem;
+    font-size: 1rem;
   }
   .navbar-inner { height: 34px; }
   .navbar-brand {

@@ -23,7 +23,7 @@ export default function Navbar() {
     <nav className="navbar">
       <Link to="/" className="masthead" onClick={() => setOpen(false)}>
         <span className="masthead-title">Endurance.Net</span>
-        <span className="masthead-subtitle">Endurance Riding News, Photos, Stories, Results</span>
+        <span className="masthead-subtitle">News,Blogs</span>
       </Link>
       <div className="navbar-inner">
         <Link to="/" className="navbar-brand" onClick={() => setOpen(false)}>
