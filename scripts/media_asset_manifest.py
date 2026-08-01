@@ -32,6 +32,8 @@ class MediaManifestConfig:
     stage_assets: bool
     asset_kinds: frozenset[str] | None
     max_assets: int | None
+    stage_mode: str = "copy"
+    symlink_root: Path | None = None
 
 
 def rows(conn: sqlite3.Connection, sql: str, params: Iterable[object] = ()) -> list[dict[str, object]]:
@@ -152,12 +154,35 @@ def load_waivers(path: Path | None) -> dict[str, str]:
     return waivers
 
 
-def copy_to_staging(source_root: Path, staging_dir: Path | None, source_path: str, storage_key: str, enabled: bool) -> tuple[str, str]:
+def copy_to_staging(
+    source_root: Path,
+    staging_dir: Path | None,
+    source_path: str,
+    storage_key: str,
+    enabled: bool,
+    stage_mode: str,
+    symlink_root: Path | None,
+) -> tuple[str, str]:
     if staging_dir is None:
         return "", "not_configured"
     destination = staging_dir / storage_key
     if not enabled:
         return str(destination), "planned"
+    if stage_mode == "symlink":
+        target_root = symlink_root if symlink_root is not None else source_root
+        target = target_root / source_path
+        try:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            if destination.is_symlink():
+                if os.readlink(destination) == str(target):
+                    return str(destination), "symlinked"
+                destination.unlink()
+            elif destination.exists():
+                return str(destination), "existing"
+            destination.symlink_to(target)
+            return str(destination), "symlinked"
+        except OSError as exc:
+            return str(destination), f"symlink_failed: {exc}"
     try:
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source_root / source_path, destination)
@@ -216,8 +241,16 @@ def generate(config: MediaManifestConfig) -> None:
         width, height = image_dimensions(config.source_root / source_path) if config.probe_dimensions else (None, None)
         asset_id = cms_asset_id(source_path)
         storage_key = cms_storage_key(asset_id, source_path)
-        staged_path, stage_status = copy_to_staging(config.source_root, config.staging_dir, source_path, storage_key, config.stage_assets)
-        if stage_status.startswith("copy_failed"):
+        staged_path, stage_status = copy_to_staging(
+            config.source_root,
+            config.staging_dir,
+            source_path,
+            storage_key,
+            config.stage_assets,
+            config.stage_mode,
+            config.symlink_root,
+        )
+        if stage_status.startswith(("copy_failed", "symlink_failed")):
             copy_failures.append({"source_path": source_path, "staged_path": staged_path, "reason": stage_status})
         manifest_rows.append(
             {
@@ -380,6 +413,8 @@ def generate(config: MediaManifestConfig) -> None:
         "cms_media_prefix": CMS_MEDIA_PREFIX,
         "staging_dir": str(config.staging_dir) if config.staging_dir else "",
         "stage_assets_enabled": config.stage_assets,
+        "stage_mode": config.stage_mode,
+        "symlink_root": str(config.symlink_root) if config.symlink_root else "",
         "dimension_probe_enabled": config.probe_dimensions,
         "asset_kind_filter": sorted(config.asset_kinds) if config.asset_kinds else [],
         "max_assets": config.max_assets,
@@ -496,6 +531,16 @@ def parse_args() -> MediaManifestConfig:
     parser.add_argument("--probe-dimensions", action="store_true", help="Read image headers for PNG/GIF dimensions. Slower on mounted legacy media.")
     parser.add_argument("--staging-dir", help="Optional CMS asset staging directory. Defaults to output-dir/legacy-media when --stage-assets is set.")
     parser.add_argument("--stage-assets", action="store_true", help="Copy readable media into the CMS staging directory.")
+    parser.add_argument(
+        "--stage-mode",
+        choices=("copy", "symlink"),
+        default="copy",
+        help="How --stage-assets materializes files. copy duplicates bytes; symlink creates CMS storage links.",
+    )
+    parser.add_argument(
+        "--symlink-root",
+        help="Root used for symlink targets in --stage-mode symlink. Defaults to --source-root; use /var/www/legacy-media for container-mounted review.",
+    )
     parser.add_argument("--image-only", action="store_true", help="Limit manifests, blockers, duplicate reports, and staging copies to image assets.")
     parser.add_argument("--max-assets", type=int, help="Limit readable manifest/staging rows for bounded smoke runs.")
     args = parser.parse_args()
@@ -516,6 +561,8 @@ def parse_args() -> MediaManifestConfig:
         stage_assets=args.stage_assets,
         asset_kinds=asset_kinds,
         max_assets=args.max_assets,
+        stage_mode=args.stage_mode,
+        symlink_root=Path(args.symlink_root) if args.symlink_root else None,
     )
 
 

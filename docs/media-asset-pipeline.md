@@ -24,6 +24,24 @@ Generate an image-only corpus for the NextGen visual migration:
 python3 scripts/media_asset_manifest.py --image-only --stage-assets --staging-dir migration/media/images
 ```
 
+Generate the full image corpus with stable CMS URLs but without duplicating the
+entire legacy image byte payload on local disk:
+
+```bash
+python3 scripts/media_asset_manifest.py \
+  --image-only \
+  --stage-assets \
+  --stage-mode symlink \
+  --symlink-root /var/www/legacy-media \
+  --output-dir migration/media/images \
+  --staging-dir migration/media/images
+```
+
+The symlink mode is intended for local/container review when the legacy media
+root is mounted read-only at `/var/www/legacy-media`. It creates CMS storage
+paths under `migration/media/images/legacy/...` that resolve inside the Nginx
+container while avoiding a large duplicate copy in the repository checkout.
+
 Run a bounded image-only smoke copy before launching the full corpus operation:
 
 ```bash
@@ -94,6 +112,12 @@ The `/media/...` alias matches the generator's `cms_storage_key` value
 `legacy/<asset-id>/<filename>`. That lets staged CMS media serve through stable
 React-facing URLs now, and keeps the same public route available later if the
 backing store moves to Directus-managed files or object storage.
+
+For a full local sweep where disk space is not sufficient for a copied corpus,
+use `--stage-mode symlink --symlink-root /var/www/legacy-media` and keep
+`LEGACY_MEDIA_ROOT` mounted in the Nginx service. For durable production CMS
+storage, rerun the same manifest with copy/object-storage ingestion so the CMS
+owns the binary payload.
 
 Set both roots before running containerized deployments:
 
