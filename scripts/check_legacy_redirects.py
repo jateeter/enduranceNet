@@ -8,7 +8,7 @@ import json
 import sys
 from dataclasses import dataclass
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, urljoin
+from urllib.parse import quote, urljoin, urlparse
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 
@@ -67,6 +67,27 @@ def request(url: str) -> tuple[int, str | None, bytes]:
         return exc.code, exc.headers.get("Location"), exc.read()
 
 
+def normalize_location(location: str | None, base_url: str) -> str:
+    if not location:
+        return ""
+    parsed_location = urlparse(location)
+    if not parsed_location.scheme and not parsed_location.netloc:
+        return location
+
+    parsed_base = urlparse(base_url)
+    if (
+        parsed_location.scheme == parsed_base.scheme
+        and parsed_location.netloc == parsed_base.netloc
+    ):
+        normalized = parsed_location.path or "/"
+        if parsed_location.query:
+            normalized = f"{normalized}?{parsed_location.query}"
+        if parsed_location.fragment:
+            normalized = f"{normalized}#{parsed_location.fragment}"
+        return normalized
+    return location
+
+
 def check_redirects(base_url: str) -> list[str]:
     failures: list[str] = []
     for check in CHECKS:
@@ -80,7 +101,8 @@ def check_redirects(base_url: str) -> list[str]:
         if status != check.status:
             failures.append(f"{check.path}: expected {check.status}, got {status}")
             continue
-        if location != check.target:
+        normalized_location = normalize_location(location, base_url)
+        if normalized_location != check.target:
             failures.append(f"{check.path}: expected Location {check.target!r}, got {location!r}")
     return failures
 
