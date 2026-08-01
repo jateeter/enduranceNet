@@ -32,6 +32,7 @@ Fixture smoke test:
 
 ```bash
 python3 scripts/test_photoshop_gallery_manifest.py
+python3 scripts/test_cms_gallery_handoff.py
 ```
 
 ## Legacy Patterns
@@ -46,3 +47,14 @@ The importer handles the two dominant Photoshop export shapes:
 Every emitted record preserves legacy source paths and stable
 `/legacy-media/...` URLs. Missing or unreadable media becomes a blocker row so
 the CMS review workflow can resolve it explicitly.
+
+## CMS Handoff
+
+After generating `migration/galleries/`, build Directus/CMS handoff files:
+
+```bash
+python3 scripts/cms_gallery_handoff.py --gallery-dir migration/galleries
+```
+
+See `docs/cms-gallery-review-workflow.md` for collection names, immutable
+provenance fields, editable review fields, and blocker workflow expectations.
