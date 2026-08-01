@@ -9,6 +9,7 @@ python3 scripts/media_asset_manifest.py --image-only --stage-assets --output-dir
 python3 scripts/check_media_roots.py --manifest migration/media/images/media-manifest.jsonl --sample-size 10 --base-url http://localhost
 cd frontend
 MEDIA_MANIFEST=../migration/media/images/media-manifest.jsonl \
+GALLERY_MANIFEST=../migration/galleries/photoshop-gallery-items.jsonl \
 MEDIA_WAIVERS=../migration/media/image-waivers.jsonl \
 APP_URL=http://localhost \
 npm run visual:production
@@ -55,6 +56,12 @@ Each image failure includes:
 - `cmsAssetId`
 - `assetKind`
 - `checksumSha256`
+- `galleryId`
+- `gallerySlug`
+- `galleryItemId`
+- `galleryPosition`
+- `galleryImageRole`
+- `itemPageSourcePath`
 - `waived`
 - `waiverReason`
 - `waiverKey`
@@ -62,3 +69,7 @@ Each image failure includes:
 
 Unwaived failures appear in `failures`. Waived image failures appear in
 `waivedFailures` so they remain visible without blocking a strict release.
+
+Provide `GALLERY_MANIFEST=../migration/galleries/photoshop-gallery-items.jsonl`
+when verifying gallery routes so failures on thumbnails and full-size images
+carry the source gallery and item identifiers.

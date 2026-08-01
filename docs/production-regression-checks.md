@@ -7,6 +7,7 @@ The release visual/media smoke is:
 ```bash
 cd frontend
 MEDIA_MANIFEST=../migration/media/images/media-manifest.jsonl \
+GALLERY_MANIFEST=../migration/galleries/photoshop-gallery-items.jsonl \
 MEDIA_WAIVERS=../migration/media/image-waivers.jsonl \
 APP_URL=https://nextgen.example.org \
 npm run visual:production
@@ -29,6 +30,8 @@ surfaces:
 - `/streams/search`
 - `/streams/endurance-tracks`
 - `/events`
+- `/galleries`
+- `/galleries/2005pac-gallery-asadorss`
 - `/featured-stories`
 - `/community`
 - `/results`
@@ -39,7 +42,8 @@ Outputs are ignored under `output/playwright/production-regression/`:
 - one full-page screenshot per route and viewport
 - `report.json` with route status, screenshot path, image request failures,
   failed image elements, source paths, CMS asset IDs, waiver state, waived
-  failures, and aggregate unwaived failures
+  failures, gallery IDs/item IDs when `GALLERY_MANIFEST` is provided, and
+  aggregate unwaived failures
 
 The command exits non-zero when a route returns a 4xx/5xx status, an image
 request fails without a waiver, or an `img` element has no rendered dimensions
