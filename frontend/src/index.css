@@ -1592,6 +1592,149 @@ ul { list-style: none; }
   font-size: 0.82rem;
   overflow-wrap: anywhere;
 }
+.event-microsite .event-hero-image {
+  width: 100%;
+  max-height: 280px;
+  padding: 0.8rem;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow);
+}
+.microsite-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.65rem;
+  background: #f6ead2;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+.microsite-nav a {
+  color: var(--color-text);
+  background: #ffffff;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius);
+  padding: 0.35rem 0.7rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+.microsite-nav a:hover {
+  color: var(--color-red);
+  border-color: var(--color-red);
+  text-decoration: none;
+}
+.microsite-section-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.microsite-section-card,
+.microsite-media-panel,
+.microsite-migration-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem;
+}
+.microsite-section-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.microsite-section-heading,
+.microsite-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--color-border-soft);
+}
+.microsite-section-heading h2,
+.microsite-panel-heading h2 {
+  font-size: 1.1rem;
+  line-height: 1.25;
+}
+.microsite-section-heading span,
+.microsite-panel-heading span,
+.microsite-media-card span {
+  color: var(--color-red);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.microsite-icon,
+.microsite-panel-heading > svg {
+  color: var(--color-primary);
+  flex: 0 0 auto;
+}
+.microsite-summary {
+  color: var(--color-text);
+  font-weight: 700;
+}
+.microsite-media-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+.microsite-media-card {
+  display: grid;
+  grid-template-rows: 132px auto;
+  color: var(--color-text);
+  background: #f8f3ea;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.microsite-media-card:hover {
+  color: var(--color-text);
+  border-color: var(--color-red);
+  text-decoration: none;
+}
+.microsite-media-card img {
+  width: 100%;
+  height: 132px;
+  object-fit: contain;
+  background: #ffffff;
+  border-bottom: 1px solid var(--color-border-soft);
+}
+.microsite-media-card div {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.65rem;
+}
+.microsite-media-card strong {
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+.microsite-migration-panel ul {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+.microsite-migration-panel li {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.65rem;
+  background: #fff9e8;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius);
+}
+.microsite-migration-panel strong {
+  color: var(--color-red);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+.microsite-migration-panel span {
+  overflow-wrap: anywhere;
+  font-size: 0.82rem;
+  font-family: var(--font-mono);
+}
+.microsite-migration-panel em {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
 
 .community-grid {
   display: grid;
@@ -1917,6 +2060,8 @@ ul { list-style: none; }
   .archive-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .event-info-grid { grid-template-columns: 1fr; }
   .event-link-grid { grid-template-columns: 1fr; }
+  .microsite-section-grid { grid-template-columns: 1fr; }
+  .microsite-media-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .community-grid { grid-template-columns: 1fr; }
   .stream-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stream-entry-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1982,6 +2127,7 @@ ul { list-style: none; }
   .hero-stats { grid-template-columns: 1fr 1fr; }
   .card-grid { grid-template-columns: 1fr; }
   .card-grid-wide { grid-template-columns: 1fr; }
+  .microsite-media-grid { grid-template-columns: 1fr; }
   .archive-filter-grid { grid-template-columns: 1fr; }
   .streams-page { padding: 0.65rem; }
   .stream-directory-actions {

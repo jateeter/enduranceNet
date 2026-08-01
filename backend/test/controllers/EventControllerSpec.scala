@@ -29,4 +29,26 @@ class EventControllerSpec extends PlaySpec with GuiceOneAppPerTest with Injectin
       status(result) mustBe NOT_FOUND
     }
   }
+
+  "EventController#microsite" should {
+    "return the 2026 Tevis microsite corpus" in {
+      val controller = inject[EventController]
+      val result = controller.microsite(1L).apply(FakeRequest(GET, "/api/events/1/microsite"))
+      val json = contentAsJson(result)
+
+      status(result) mustBe OK
+      contentType(result) mustBe Some("application/json")
+      (json \ "slug").as[String] mustBe "2026-tevis-cup"
+      (json \\ "publicUrl").map(_.as[String]) must contain("/international/USA/2026TevisCup/banner_block.jpg")
+      (json \\ "sourcePath").map(_.as[String]) must contain("/Volumes/webstore/endurance.net/international/USA/2026TevisCup/banner_150.jpg")
+      (json \\ "legacyUrls").head.as[Seq[String]] must contain("/international/USA/2026TevisCup/resultsIndex.html")
+    }
+
+    "return 404 for events without a migrated microsite" in {
+      val controller = inject[EventController]
+      val result = controller.microsite(999L).apply(FakeRequest(GET, "/api/events/999/microsite"))
+
+      status(result) mustBe NOT_FOUND
+    }
+  }
 }

@@ -1,11 +1,14 @@
 import apiClient from './client';
-import type { Event, HomepageAsset, LegacyRedirect, News, Athlete, PhotoGallery, Result, StreamEntry, StreamEntrySearchResult, StreamSource } from '../types';
+import type { Athlete, Event, EventMicrosite, HomepageAsset, LegacyRedirect, News, PhotoGallery, Result, StreamEntry, StreamEntrySearchResult, StreamSource } from '../types';
 
 export const fetchEvents = (): Promise<Event[]> =>
   apiClient.get<Event[]>('/events').then((r) => r.data);
 
 export const fetchEvent = (id: number): Promise<Event> =>
   apiClient.get<Event>(`/events/${id}`).then((r) => r.data);
+
+export const fetchEventMicrosite = (id: number): Promise<EventMicrosite> =>
+  apiClient.get<EventMicrosite>(`/events/${id}/microsite`).then((r) => r.data);
 
 export const fetchNews = (): Promise<News[]> =>
   apiClient.get<News[]>('/news').then((r) => r.data);
