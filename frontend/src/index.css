@@ -55,6 +55,12 @@ ul { list-style: none; }
   border-bottom: 0;
   z-index: 100;
 }
+.navbar-interior {
+  height: 32px;
+}
+.navbar-interior + .main-content {
+  padding-top: 32px;
+}
 .masthead {
   max-width: 1352px;
   height: 102px;
@@ -1897,6 +1903,12 @@ ul { list-style: none; }
 }
 @media (max-width: 640px) {
   :root { --nav-height: 98px; }
+  .navbar-interior {
+    height: 34px;
+  }
+  .navbar-interior + .main-content {
+    padding-top: 34px;
+  }
   .masthead {
     height: 64px;
     padding: 0 0.8rem;
@@ -1928,6 +1940,9 @@ ul { list-style: none; }
     gap: 0.25rem;
     width: auto;
     justify-content: flex-start;
+  }
+  .navbar-interior .navbar-links {
+    top: 34px;
   }
   .navbar-links.open { display: flex; }
   .navbar-links li a { display: block; padding: 0.6rem 0.75rem; font-size: 1rem; }
