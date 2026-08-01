@@ -15,7 +15,8 @@ export default function GalleriesPage() {
       <LegacySectionHeader
         title="Photo Galleries"
         subtitle="Migrated Photoshop image galleries with preserved thumbnails, source pages, and full-size legacy media links."
-        banner="/images/ENbanner_sm_right_snapshots.jpg"
+        brandImage="/media/galleries/2005pac-gallery-asadorss/thumbnails/IMG_0005.jpg"
+        banner="/media/galleries/gallery-nov4-welcomereception/thumbnails/IMG_6570.jpg"
         icon={<Images size={28} />}
       />
 

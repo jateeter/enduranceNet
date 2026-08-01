@@ -16,7 +16,8 @@ export default function GalleryDetailPage() {
       <LegacySectionHeader
         title={gallery?.title ?? 'Photo Gallery'}
         subtitle={gallery ? `${gallery.itemCount} migrated Photoshop gallery images from ${gallery.sourceRoot}` : 'Migrated Photoshop gallery'}
-        banner="/images/ENbanner_sm_right_snapshots.jpg"
+        brandImage="/media/galleries/2005pac-gallery-asadorss/thumbnails/IMG_0005.jpg"
+        banner="/media/galleries/gallery-nov4-welcomereception/thumbnails/IMG_6570.jpg"
         icon={<Camera size={28} />}
       />
 
