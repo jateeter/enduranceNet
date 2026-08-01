@@ -228,6 +228,34 @@ class MediaAssetManifestTest(unittest.TestCase):
         self.assertTrue(summary["bounded_manifest"])
         self.assertEqual(1, summary["manifest_entries"])
 
+    def test_symlink_stage_mode_uses_stable_cms_paths_without_copying(self) -> None:
+        config = media_asset_manifest.MediaManifestConfig(
+            inventory_db=self.inventory_db,
+            import_db=None,
+            source_root=self.source_root,
+            output_dir=self.output_dir,
+            waivers=None,
+            probe_dimensions=False,
+            staging_dir=self.root / "cms-image-stage",
+            stage_assets=True,
+            asset_kinds=frozenset({"image"}),
+            max_assets=1,
+            stage_mode="symlink",
+            symlink_root=Path("/var/www/legacy-media"),
+        )
+
+        media_asset_manifest.generate(config)
+
+        manifest = self._jsonl("media-manifest.jsonl")
+        staged_path = Path(str(manifest[0]["staged_path"]))
+        expected_target = f"/var/www/legacy-media/{manifest[0]['source_path']}"
+        self.assertEqual("symlinked", manifest[0]["stage_status"])
+        self.assertTrue(staged_path.is_symlink())
+        self.assertEqual(expected_target, staged_path.readlink().as_posix())
+        summary = json.loads((self.output_dir / "media-summary.json").read_text(encoding="utf-8"))
+        self.assertEqual("symlink", summary["stage_mode"])
+        self.assertEqual("/var/www/legacy-media", summary["symlink_root"])
+
 
 if __name__ == "__main__":
     unittest.main()

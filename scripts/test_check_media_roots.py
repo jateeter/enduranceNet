@@ -51,15 +51,22 @@ class CheckMediaRootsTest(unittest.TestCase):
 
     def test_manifest_rows_validate_legacy_and_cms_paths(self) -> None:
         rows = check_media_roots.load_manifest_rows(self.manifest, 5)
-        failures = check_media_roots.verify_manifest_rows(rows, self.legacy_root, self.cms_root, None)
+        failures = check_media_roots.verify_manifest_rows(rows, self.legacy_root, self.cms_root, "/var/www/legacy-media", None)
         self.assertEqual([], failures)
 
     def test_missing_cms_file_fails_clearly(self) -> None:
         (self.cms_root / "legacy" / "legacy-asset" / "photo.jpg").unlink()
         rows = check_media_roots.load_manifest_rows(self.manifest, 5)
-        failures = check_media_roots.verify_manifest_rows(rows, self.legacy_root, self.cms_root, None)
+        failures = check_media_roots.verify_manifest_rows(rows, self.legacy_root, self.cms_root, "/var/www/legacy-media", None)
         self.assertEqual(1, len(failures))
         self.assertIn("cms media missing", failures[0])
+
+    def test_container_symlink_targets_are_valid_cms_paths(self) -> None:
+        (self.cms_root / "legacy" / "legacy-asset" / "photo.jpg").unlink()
+        (self.cms_root / "legacy" / "legacy-asset" / "photo.jpg").symlink_to("/var/www/legacy-media/images/photo.jpg")
+        rows = check_media_roots.load_manifest_rows(self.manifest, 5)
+        failures = check_media_roots.verify_manifest_rows(rows, self.legacy_root, self.cms_root, "/var/www/legacy-media", None)
+        self.assertEqual([], failures)
 
     def test_root_check_reports_missing_directory(self) -> None:
         ok, detail = check_media_roots.readable_directory(self.root / "missing")

@@ -15,6 +15,7 @@ from urllib.request import Request, urlopen
 
 DEFAULT_LEGACY_ROOT = "/Volumes/webstore/endurance.net"
 DEFAULT_CMS_ROOT = "migration/media/images"
+DEFAULT_CONTAINER_LEGACY_ROOT = "/var/www/legacy-media"
 USER_AGENT = "endurancenet-media-root-check/1.0"
 
 
@@ -69,6 +70,7 @@ def verify_manifest_rows(
     rows: list[dict[str, object]],
     legacy_root: Path,
     cms_root: Path,
+    container_legacy_root: str,
     base_url: str | None,
 ) -> list[str]:
     failures: list[str] = []
@@ -84,7 +86,9 @@ def verify_manifest_rows(
         if not storage_key:
             failures.append(f"{source_path}: manifest row is missing cms_storage_key")
         elif not (cms_root / storage_key).is_file():
-            failures.append(f"cms media missing: {cms_root / storage_key}")
+            staged = cms_root / storage_key
+            if not staged.is_symlink() or not os.readlink(staged).startswith(container_legacy_root.rstrip("/") + "/"):
+                failures.append(f"cms media missing: {staged}")
         if base_url:
             for label, media_url in [("legacy", public_url), ("cms", cms_public_url)]:
                 if not media_url:
@@ -102,6 +106,11 @@ def main() -> int:
     parser.add_argument("--cms-root", default=os.environ.get("CMS_MEDIA_ROOT", DEFAULT_CMS_ROOT))
     parser.add_argument("--manifest", help="Optional media-manifest.jsonl used to verify representative image files.")
     parser.add_argument("--sample-size", type=int, default=5, help="Number of image manifest rows to verify.")
+    parser.add_argument(
+        "--container-legacy-root",
+        default=DEFAULT_CONTAINER_LEGACY_ROOT,
+        help="Container path allowed for CMS media symlink targets.",
+    )
     parser.add_argument("--base-url", help="Optional running app base URL used to verify public media URLs.")
     args = parser.parse_args()
 
@@ -126,7 +135,7 @@ def main() -> int:
             failures.append(f"manifest has no image rows: {args.manifest}")
 
     if rows and not failures:
-        failures.extend(verify_manifest_rows(rows, legacy_root, cms_root, args.base_url))
+        failures.extend(verify_manifest_rows(rows, legacy_root, cms_root, args.container_legacy_root, args.base_url))
 
     if failures:
         for failure in failures:

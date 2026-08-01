@@ -9,6 +9,20 @@ python3 scripts/media_asset_manifest.py --image-only --stage-assets --output-dir
 python3 scripts/cms_image_handoff.py --media-dir migration/media/images
 ```
 
+For full-corpus local review on a checkout that cannot hold another complete
+copy of the legacy image tree, use link-backed CMS staging:
+
+```bash
+python3 scripts/media_asset_manifest.py \
+  --image-only \
+  --stage-assets \
+  --stage-mode symlink \
+  --symlink-root /var/www/legacy-media \
+  --output-dir migration/media/images \
+  --staging-dir migration/media/images
+python3 scripts/cms_image_handoff.py --media-dir migration/media/images
+```
+
 The handoff writes ignored operational files under
 `migration/media/images/cms-handoff/`:
 
