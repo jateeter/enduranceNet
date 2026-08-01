@@ -13,6 +13,7 @@ const outputDir = path.resolve(process.cwd(), '..', 'output', 'playwright', 'pro
 const chromePath = process.env.CHROME_EXECUTABLE_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const failOnMedia = process.env.ALLOW_MEDIA_FAILURES !== 'true';
 const mediaManifestPath = process.env.MEDIA_MANIFEST ?? process.env.IMAGE_MEDIA_MANIFEST ?? '';
+const galleryManifestPath = process.env.GALLERY_MANIFEST ?? process.env.GALLERY_ITEMS_MANIFEST ?? '';
 const mediaWaiversPath = process.env.MEDIA_WAIVERS ?? process.env.MEDIA_WAIVER_FILE ?? '';
 
 const routes = [
@@ -21,6 +22,8 @@ const routes = [
   { name: 'stream-search', path: '/streams/search' },
   { name: 'stream-detail', path: '/streams/endurance-tracks' },
   { name: 'events', path: '/events' },
+  { name: 'galleries', path: '/galleries' },
+  { name: 'gallery-detail', path: '/galleries/2005pac-gallery-asadorss' },
   { name: 'featured-stories', path: '/featured-stories' },
   { name: 'community', path: '/community' },
   { name: 'results', path: '/results' },
@@ -43,8 +46,9 @@ function artifactName(routeName, viewportName) {
 await mkdir(outputDir, { recursive: true });
 
 const mediaManifestRows = mediaManifestPath ? await readJsonl(mediaManifestPath) : [];
+const galleryManifestRows = galleryManifestPath ? await readJsonl(galleryManifestPath) : [];
 const mediaWaiverRows = mediaWaiversPath ? await readJsonl(mediaWaiversPath) : [];
-const manifestLookup = buildManifestLookup(mediaManifestRows, appUrl);
+const manifestLookup = buildManifestLookup([...mediaManifestRows, ...galleryManifestRows], appUrl);
 const waiverLookup = buildWaiverLookup(mediaWaiverRows);
 
 const browser = await chromium.launch({
@@ -56,6 +60,7 @@ const report = {
   generatedAt: new Date().toISOString(),
   appUrl,
   mediaManifest: mediaManifestPath,
+  galleryManifest: galleryManifestPath,
   mediaWaivers: mediaWaiversPath,
   routes: [],
   failures: [],

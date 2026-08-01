@@ -17,6 +17,18 @@ const manifestLookup = buildManifestLookup(
       asset_kind: 'image',
       checksum_sha256: 'sha-photo',
     },
+    {
+      gallery_id: 'gallery-one',
+      gallery_slug: 'gallery-one',
+      item_id: 'gallery-item-one',
+      position: 1,
+      thumbnail_public_url: '/legacy-media/gallery/one/thumbnails/photo.jpg',
+      thumbnail_source_path: 'gallery/one/thumbnails/photo.jpg',
+      full_image_public_url: '/legacy-media/gallery/one/images/photo.jpg',
+      full_image_source_path: 'gallery/one/images/photo.jpg',
+      item_page_source_path: 'gallery/one/pages/photo.html',
+      checksum_sha256: 'sha-gallery',
+    },
   ],
   appUrl,
 );
@@ -45,5 +57,16 @@ const inferredLegacy = annotateMediaFailure(
 );
 assert.equal(inferredLegacy.sourcePath, 'images/unknown.jpg');
 assert.equal(inferredLegacy.cmsAssetId, '');
+
+const annotatedGallery = annotateMediaFailure(
+  { url: 'http://localhost/legacy-media/gallery/one/thumbnails/photo.jpg', status: 404 },
+  { appUrl, manifestLookup, waiverLookup: new Map() },
+);
+assert.equal(annotatedGallery.sourcePath, 'gallery/one/thumbnails/photo.jpg');
+assert.equal(annotatedGallery.galleryId, 'gallery-one');
+assert.equal(annotatedGallery.gallerySlug, 'gallery-one');
+assert.equal(annotatedGallery.galleryItemId, 'gallery-item-one');
+assert.equal(annotatedGallery.galleryImageRole, 'thumbnail');
+assert.equal(annotatedGallery.itemPageSourcePath, 'gallery/one/pages/photo.html');
 
 console.log('media regression utility checks passed');

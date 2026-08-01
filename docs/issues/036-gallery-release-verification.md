@@ -13,6 +13,8 @@ deployed app.
 - Surface source path, gallery ID, item ID, image URL, waiver state, and
   screenshot artifact for failures.
 - Document local and deployed verification commands.
+- Feed `photoshop-gallery-items.jsonl` into the visual/media manifest lookup
+  so image failures can be traced back to gallery item records.
 
 ## Acceptance Criteria
 
