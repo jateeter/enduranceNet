@@ -5,10 +5,11 @@ interface Props {
   title: string;
   subtitle: string;
   banner: string;
+  brandImage?: string;
   icon: ReactNode;
 }
 
-export default function LegacySectionHeader({ title, subtitle, banner, icon }: Props) {
+export default function LegacySectionHeader({ title, subtitle, banner, brandImage = '/images/ENbanner_sm_left.jpg', icon }: Props) {
   const hideBrokenImage = (event: SyntheticEvent<HTMLImageElement>) => {
     event.currentTarget.hidden = true;
   };
@@ -16,7 +17,7 @@ export default function LegacySectionHeader({ title, subtitle, banner, icon }: P
   return (
     <div className="legacy-page-header">
       <div className="legacy-page-banner">
-        <img src={legacyAssetUrl('/images/ENbanner_sm_left.jpg')} alt="Endurance.Net" onError={hideBrokenImage} />
+        <img src={legacyAssetUrl(brandImage)} alt="Endurance.Net" onError={hideBrokenImage} />
         <img src={legacyAssetUrl(banner)} alt="" onError={hideBrokenImage} />
       </div>
       <div className="legacy-page-title">
