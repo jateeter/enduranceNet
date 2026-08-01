@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, SyntheticEvent } from 'react';
 import { legacyAssetUrl } from '../utils/legacyAssets';
 
 interface Props {
@@ -9,11 +9,15 @@ interface Props {
 }
 
 export default function LegacySectionHeader({ title, subtitle, banner, icon }: Props) {
+  const hideBrokenImage = (event: SyntheticEvent<HTMLImageElement>) => {
+    event.currentTarget.hidden = true;
+  };
+
   return (
     <div className="legacy-page-header">
       <div className="legacy-page-banner">
-        <img src={legacyAssetUrl('/images/ENbanner_sm_left.jpg')} alt="Endurance.Net" />
-        <img src={legacyAssetUrl(banner)} alt="" />
+        <img src={legacyAssetUrl('/images/ENbanner_sm_left.jpg')} alt="Endurance.Net" onError={hideBrokenImage} />
+        <img src={legacyAssetUrl(banner)} alt="" onError={hideBrokenImage} />
       </div>
       <div className="legacy-page-title">
         <span className="legacy-page-icon">{icon}</span>

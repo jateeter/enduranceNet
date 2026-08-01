@@ -43,12 +43,12 @@ object PhotoGallery {
       itemCount = 6,
       parserVersion = "photoshop-gallery-manifest-v1",
       items = Seq(
-        item("gallery-e26bdc94e93622b5", 1, "IMG 0005", "2005PAC/Gallery/AsadorsS", "IMG_0005"),
-        item("gallery-e26bdc94e93622b5", 2, "IMG 0006", "2005PAC/Gallery/AsadorsS", "IMG_0006"),
-        item("gallery-e26bdc94e93622b5", 3, "IMG 4748", "2005PAC/Gallery/AsadorsS", "IMG_4748"),
-        item("gallery-e26bdc94e93622b5", 4, "IMG 4749", "2005PAC/Gallery/AsadorsS", "IMG_4749"),
-        item("gallery-e26bdc94e93622b5", 5, "IMG 4750", "2005PAC/Gallery/AsadorsS", "IMG_4750"),
-        item("gallery-e26bdc94e93622b5", 6, "IMG 4751", "2005PAC/Gallery/AsadorsS", "IMG_4751")
+        item("gallery-e26bdc94e93622b5", "2005pac-gallery-asadorss", 1, "IMG 0005", "2005PAC/Gallery/AsadorsS", "IMG_0005"),
+        item("gallery-e26bdc94e93622b5", "2005pac-gallery-asadorss", 2, "IMG 0006", "2005PAC/Gallery/AsadorsS", "IMG_0006"),
+        item("gallery-e26bdc94e93622b5", "2005pac-gallery-asadorss", 3, "IMG 4748", "2005PAC/Gallery/AsadorsS", "IMG_4748"),
+        item("gallery-e26bdc94e93622b5", "2005pac-gallery-asadorss", 4, "IMG 4749", "2005PAC/Gallery/AsadorsS", "IMG_4749"),
+        item("gallery-e26bdc94e93622b5", "2005pac-gallery-asadorss", 5, "IMG 4750", "2005PAC/Gallery/AsadorsS", "IMG_4750"),
+        item("gallery-e26bdc94e93622b5", "2005pac-gallery-asadorss", 6, "IMG 4751", "2005PAC/Gallery/AsadorsS", "IMG_4751")
       )
     ),
     PhotoGallery(
@@ -61,23 +61,23 @@ object PhotoGallery {
       itemCount = 6,
       parserVersion = "photoshop-gallery-manifest-v1",
       items = Seq(
-        item("gallery-8d8c99b1819e0c2a", 1, "IMG 6570", "gallery/Nov4_WelcomeReception", "IMG_6570"),
-        item("gallery-8d8c99b1819e0c2a", 2, "IMG 6571", "gallery/Nov4_WelcomeReception", "IMG_6571"),
-        item("gallery-8d8c99b1819e0c2a", 3, "IMG 6572", "gallery/Nov4_WelcomeReception", "IMG_6572"),
-        item("gallery-8d8c99b1819e0c2a", 4, "IMG 6573", "gallery/Nov4_WelcomeReception", "IMG_6573"),
-        item("gallery-8d8c99b1819e0c2a", 5, "IMG 6574", "gallery/Nov4_WelcomeReception", "IMG_6574"),
-        item("gallery-8d8c99b1819e0c2a", 6, "IMG 6575", "gallery/Nov4_WelcomeReception", "IMG_6575")
+        item("gallery-8d8c99b1819e0c2a", "gallery-nov4-welcomereception", 1, "IMG 6570", "gallery/Nov4_WelcomeReception", "IMG_6570"),
+        item("gallery-8d8c99b1819e0c2a", "gallery-nov4-welcomereception", 2, "IMG 6571", "gallery/Nov4_WelcomeReception", "IMG_6571"),
+        item("gallery-8d8c99b1819e0c2a", "gallery-nov4-welcomereception", 3, "IMG 6572", "gallery/Nov4_WelcomeReception", "IMG_6572"),
+        item("gallery-8d8c99b1819e0c2a", "gallery-nov4-welcomereception", 4, "IMG 6573", "gallery/Nov4_WelcomeReception", "IMG_6573"),
+        item("gallery-8d8c99b1819e0c2a", "gallery-nov4-welcomereception", 5, "IMG 6574", "gallery/Nov4_WelcomeReception", "IMG_6574"),
+        item("gallery-8d8c99b1819e0c2a", "gallery-nov4-welcomereception", 6, "IMG 6575", "gallery/Nov4_WelcomeReception", "IMG_6575")
       )
     )
   )
 
-  private def item(galleryId: String, position: Int, caption: String, root: String, stem: String): PhotoGalleryItem =
+  private def item(galleryId: String, slug: String, position: Int, caption: String, root: String, stem: String): PhotoGalleryItem =
     PhotoGalleryItem(
       id = s"$galleryId-$position",
       position = position,
       caption = caption,
-      thumbnailUrl = s"/legacy-media/$root/thumbnails/$stem.jpg",
-      fullImageUrl = s"/legacy-media/$root/images/$stem.jpg",
+      thumbnailUrl = s"/media/galleries/$slug/thumbnails/$stem.jpg",
+      fullImageUrl = s"/media/galleries/$slug/images/$stem.jpg",
       thumbnailSourcePath = s"$root/thumbnails/$stem.jpg",
       fullImageSourcePath = s"$root/images/$stem.jpg",
       itemPageSourcePath = s"$root/pages/$stem.html"
