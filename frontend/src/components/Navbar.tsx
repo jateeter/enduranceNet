@@ -18,13 +18,16 @@ const navLinks = [
 export default function Navbar() {
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
+  const isHomePage = pathname === '/';
 
   return (
-    <nav className="navbar">
-      <Link to="/" className="masthead" onClick={() => setOpen(false)}>
-        <span className="masthead-title">Endurance.Net</span>
-        <span className="masthead-subtitle">News,Blogs</span>
-      </Link>
+    <nav className={`navbar${isHomePage ? ' navbar-home' : ' navbar-interior'}`}>
+      {isHomePage && (
+        <Link to="/" className="masthead" onClick={() => setOpen(false)}>
+          <span className="masthead-title">Endurance.Net</span>
+          <span className="masthead-subtitle">News,Blogs</span>
+        </Link>
+      )}
       <div className="navbar-inner">
         <Link to="/" className="navbar-brand" onClick={() => setOpen(false)}>
           <span className="brand-mark">@</span>
