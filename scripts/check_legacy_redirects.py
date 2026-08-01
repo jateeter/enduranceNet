@@ -32,10 +32,18 @@ CHECKS = [
     LegacyCheck("/newsblogs/index.html", "/news"),
     LegacyCheck("/events/", "/events"),
     LegacyCheck("/events/index.html", "/events"),
-    LegacyCheck("/ClassifiedAds/", "/results"),
-    LegacyCheck("/ClassifiedAds/index.html", "/results"),
-    LegacyCheck("/RidecampFriend/", "/athletes"),
-    LegacyCheck("/RidecampFriend/index.html", "/athletes"),
+    LegacyCheck("/ClassifiedAds/", "/community#classifieds"),
+    LegacyCheck("/ClassifiedAds/index.html", "/community#classifieds"),
+    LegacyCheck("/RidecampFriend/", "/community#ridecamp"),
+    LegacyCheck("/RidecampFriend/index.html", "/community#ridecamp"),
+    LegacyCheck("/2005PAC/Gallery/AsadorsS/", "/galleries/2005pac-gallery-asadorss"),
+    LegacyCheck("/2005PAC/Gallery/AsadorsS/ThumbnailFrame.html", "/galleries/2005pac-gallery-asadorss"),
+    LegacyCheck("/2005PAC/Gallery/AsadorsS/index.html", "/galleries/2005pac-gallery-asadorss"),
+    LegacyCheck("/2005PAC/Gallery/AsadorsS/pages/IMG_0005.html", "/galleries/2005pac-gallery-asadorss"),
+    LegacyCheck("/gallery/Nov4_WelcomeReception/", "/galleries/gallery-nov4-welcomereception"),
+    LegacyCheck("/gallery/Nov4_WelcomeReception/index.html", "/galleries/gallery-nov4-welcomereception"),
+    LegacyCheck("/gallery/Nov4_WelcomeReception/index_2.html", "/galleries/gallery-nov4-welcomereception"),
+    LegacyCheck("/gallery/Nov4_WelcomeReception/pages/IMG_6570.html", "/galleries/gallery-nov4-welcomereception"),
 ]
 
 
