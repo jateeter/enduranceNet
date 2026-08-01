@@ -28,6 +28,14 @@ const legacyPathTargets: Record<string, string> = {
   '/RidecampFriend': '/community#ridecamp',
   '/RidecampFriend/': '/community#ridecamp',
   '/RidecampFriend/index.html': '/community#ridecamp',
+  '/2005PAC/Gallery/AsadorsS/': '/galleries/2005pac-gallery-asadorss',
+  '/2005PAC/Gallery/AsadorsS/ThumbnailFrame.html': '/galleries/2005pac-gallery-asadorss',
+  '/2005PAC/Gallery/AsadorsS/index.html': '/galleries/2005pac-gallery-asadorss',
+  '/2005PAC/Gallery/AsadorsS/pages/IMG_0005.html': '/galleries/2005pac-gallery-asadorss',
+  '/gallery/Nov4_WelcomeReception/': '/galleries/gallery-nov4-welcomereception',
+  '/gallery/Nov4_WelcomeReception/index.html': '/galleries/gallery-nov4-welcomereception',
+  '/gallery/Nov4_WelcomeReception/index_2.html': '/galleries/gallery-nov4-welcomereception',
+  '/gallery/Nov4_WelcomeReception/pages/IMG_6570.html': '/galleries/gallery-nov4-welcomereception',
 };
 
 export function resolveLegacyRedirect(pathname: string, hash = ''): string {

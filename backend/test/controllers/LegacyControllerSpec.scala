@@ -29,7 +29,9 @@ class LegacyControllerSpec extends PlaySpec with GuiceOneAppPerTest with Injecti
       status(result) mustBe OK
       contentType(result) mustBe Some("application/json")
       (json \\ "legacyUrl").map(_.as[String]) must contain("/FeaturedStories/#AnnKratochvil")
+      (json \\ "legacyUrl").map(_.as[String]) must contain("/2005PAC/Gallery/AsadorsS/ThumbnailFrame.html")
       (json \\ "targetUrl").map(_.as[String]) must contain("/news/5")
+      (json \\ "targetUrl").map(_.as[String]) must contain("/galleries/2005pac-gallery-asadorss")
     }
   }
 
@@ -53,6 +55,17 @@ class LegacyControllerSpec extends PlaySpec with GuiceOneAppPerTest with Injecti
       status(result) mustBe OK
       (json \ "legacyUrl").as[String] mustBe "/FeaturedStories/#AnnKratochvil"
       (json \ "targetUrl").as[String] mustBe "/news/5"
+    }
+
+    "resolve representative Photoshop gallery wrapper paths" in {
+      val controller = inject[LegacyController]
+      val result = controller.resolveRedirect().apply(FakeRequest(GET, "/api/legacy-redirects/resolve?url=/gallery/Nov4_WelcomeReception/index_2.html"))
+      val json = contentAsJson(result)
+
+      status(result) mustBe OK
+      (json \ "legacyUrl").as[String] mustBe "/gallery/Nov4_WelcomeReception/index_2.html"
+      (json \ "targetUrl").as[String] mustBe "/galleries/gallery-nov4-welcomereception"
+      (json \ "statusCode").as[Int] mustBe 301
     }
 
     "return 404 for an unknown legacy path" in {
