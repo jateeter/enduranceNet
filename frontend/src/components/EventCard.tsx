@@ -16,6 +16,7 @@ export default function EventCard({ event }: Props) {
   const bannerUrl = event.registrationUrl?.endsWith('/')
     ? legacyAssetUrl(`${event.registrationUrl}banner_block.jpg`)
     : undefined;
+  const detailPath = event.id === 1 ? '/events/2026-tevis-cup' : `/events/${event.id}`;
 
   return (
     <div className="card">
@@ -29,7 +30,7 @@ export default function EventCard({ event }: Props) {
       <p className="card-description">{event.description}</p>
       <div className="card-footer">
         <span className="card-distance">{event.distance}</span>
-        <Link to={`/events/${event.id}`} className="btn btn-sm">
+        <Link to={detailPath} className="btn btn-sm">
           Details <ArrowRight size={14} />
         </Link>
       </div>

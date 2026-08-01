@@ -9,6 +9,49 @@ export interface Event {
   registrationUrl?: string;
 }
 
+export interface EventMicrositeSection {
+  id: string;
+  title: string;
+  kind: string;
+  legacyUrl: string;
+  summary: string;
+  body: string;
+  ctaLabel: string;
+}
+
+export interface EventMicrositeMedia {
+  id: string;
+  title: string;
+  kind: string;
+  publicUrl: string;
+  sourcePath: string;
+  altText: string;
+  status: string;
+}
+
+export interface EventMicrositeBlocker {
+  sourcePath: string;
+  reason: string;
+  status: string;
+}
+
+export interface EventMicrosite {
+  eventId: number;
+  slug: string;
+  title: string;
+  subtitle: string;
+  date: string;
+  location: string;
+  distance: string;
+  heroImageUrl: string;
+  legacyRootUrl: string;
+  overview: string;
+  sections: EventMicrositeSection[];
+  media: EventMicrositeMedia[];
+  blockers: EventMicrositeBlocker[];
+  legacyUrls: string[];
+}
+
 export interface News {
   id: number;
   title: string;

@@ -30,8 +30,10 @@ class LegacyControllerSpec extends PlaySpec with GuiceOneAppPerTest with Injecti
       contentType(result) mustBe Some("application/json")
       (json \\ "legacyUrl").map(_.as[String]) must contain("/FeaturedStories/#AnnKratochvil")
       (json \\ "legacyUrl").map(_.as[String]) must contain("/2005PAC/Gallery/AsadorsS/ThumbnailFrame.html")
+      (json \\ "legacyUrl").map(_.as[String]) must contain("/international/USA/2026TevisCup/index.html")
       (json \\ "targetUrl").map(_.as[String]) must contain("/news/5")
       (json \\ "targetUrl").map(_.as[String]) must contain("/galleries/2005pac-gallery-asadorss")
+      (json \\ "targetUrl").map(_.as[String]) must contain("/events/2026-tevis-cup")
     }
   }
 
@@ -65,6 +67,17 @@ class LegacyControllerSpec extends PlaySpec with GuiceOneAppPerTest with Injecti
       status(result) mustBe OK
       (json \ "legacyUrl").as[String] mustBe "/gallery/Nov4_WelcomeReception/index_2.html"
       (json \ "targetUrl").as[String] mustBe "/galleries/gallery-nov4-welcomereception"
+      (json \ "statusCode").as[Int] mustBe 301
+    }
+
+    "resolve representative 2026 Tevis Cup wrapper paths" in {
+      val controller = inject[LegacyController]
+      val result = controller.resolveRedirect().apply(FakeRequest(GET, "/api/legacy-redirects/resolve?url=/international/USA/2026TevisCup/gallery.html"))
+      val json = contentAsJson(result)
+
+      status(result) mustBe OK
+      (json \ "legacyUrl").as[String] mustBe "/international/USA/2026TevisCup/gallery.html"
+      (json \ "targetUrl").as[String] mustBe "/events/2026-tevis-cup#gallery"
       (json \ "statusCode").as[Int] mustBe 301
     }
 
