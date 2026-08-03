@@ -22,12 +22,14 @@ export default function Navbar() {
 
   return (
     <nav className={`navbar${isHomePage ? ' navbar-home' : ' navbar-interior'}`}>
-      {isHomePage && (
-        <Link to="/" className="masthead" onClick={() => setOpen(false)}>
-          <span className="masthead-title">Endurance.Net</span>
-          <span className="masthead-subtitle">News,Blogs</span>
-        </Link>
-      )}
+      <Link
+        to="/"
+        className={`masthead${isHomePage ? ' masthead-home' : ' masthead-interior'}`}
+        onClick={() => setOpen(false)}
+      >
+        <span className="masthead-title">Endurance.Net</span>
+        <span className="masthead-subtitle">News,Blogs</span>
+      </Link>
       <div className="navbar-inner">
         <Link to="/" className="navbar-brand" onClick={() => setOpen(false)}>
           <span className="brand-mark">@</span>
