@@ -1,6 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { type CSSProperties, useState } from 'react';
+import { resolveMastheadVariant } from '../data/mastheads';
+import { legacyAssetUrl } from '../utils/legacyAssets';
 
 const navLinks = [
   { to: '/', label: 'Home' },
@@ -19,16 +21,27 @@ export default function Navbar() {
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const isHomePage = pathname === '/';
+  const masthead = resolveMastheadVariant(pathname);
+  const mastheadImageUrl = legacyAssetUrl(masthead.imageUrl) ?? masthead.imageUrl;
+  const mastheadStyle = {
+    '--masthead-bg': `url("${mastheadImageUrl}")`,
+    '--masthead-accent': masthead.accentColor,
+  } as CSSProperties;
 
   return (
     <nav className={`navbar${isHomePage ? ' navbar-home' : ' navbar-interior'}`}>
       <Link
         to="/"
-        className={`masthead${isHomePage ? ' masthead-home' : ' masthead-interior'}`}
+        className={`masthead${isHomePage ? ' masthead-home' : ' masthead-interior'} masthead-${masthead.kind}`}
+        style={mastheadStyle}
+        data-masthead-variant={masthead.id}
+        data-masthead-kind={masthead.kind}
+        data-masthead-image={mastheadImageUrl}
+        aria-label={`${masthead.title} ${masthead.subtitle} masthead`}
         onClick={() => setOpen(false)}
       >
-        <span className="masthead-title">Endurance.Net</span>
-        <span className="masthead-subtitle">News,Blogs</span>
+        <span className="masthead-title">{masthead.title}</span>
+        <span className="masthead-subtitle">{masthead.subtitle}</span>
       </Link>
       <div className="navbar-inner">
         <Link to="/" className="navbar-brand" onClick={() => setOpen(false)}>
