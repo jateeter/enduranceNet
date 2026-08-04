@@ -1,0 +1,11 @@
+{
+  "blocked": 0,
+  "candidates": 14,
+  "copied": 14,
+  "crawl_log": "migration/media/images/live-mastheads-crawl-log.jsonl",
+  "manifest": "migration/media/images/live-mastheads-manifest.jsonl",
+  "max_depth": 4,
+  "max_pages": 0,
+  "pages_crawled": 0,
+  "start_url": "http://www.endurance.net/"
+}

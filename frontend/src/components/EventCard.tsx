@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Calendar, MapPin, ArrowRight } from 'lucide-react';
 import type { Event } from '../types';
-import { legacyAssetUrl } from '../utils/legacyAssets';
+import { liveEventBannerUrl } from '../data/liveEventBanners';
 
 interface Props {
   event: Event;
@@ -13,9 +13,7 @@ export default function EventCard({ event }: Props) {
     month: 'long',
     day: 'numeric',
   });
-  const bannerUrl = event.registrationUrl?.endsWith('/')
-    ? legacyAssetUrl(`${event.registrationUrl}banner_block.jpg`)
-    : undefined;
+  const bannerUrl = liveEventBannerUrl(event.registrationUrl);
   const detailPath = event.id === 1 ? '/events/2026-tevis-cup' : `/events/${event.id}`;
 
   return (

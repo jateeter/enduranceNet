@@ -15,7 +15,7 @@ export default function FeaturedStoriesPage() {
       <LegacySectionHeader
         title="Featured Stories"
         subtitle="Longer reads, memorials, international coverage, and community-history pieces from the Endurance.Net archive."
-        banner="/images/ENbanner_right_stories.jpg"
+        banner="/media/live-92af7d5218e4bd86/banner_sm_right_newsblogs.jpg"
         icon={<BookOpen size={28} />}
       />
 

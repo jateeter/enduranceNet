@@ -21,7 +21,7 @@ export default function ResultsPage() {
       <LegacySectionHeader
         title="Results Archive"
         subtitle="Migration staging for event results, completion records, categories, and historical ride standings."
-        banner="/images/banner_sm_right_events.jpg"
+        banner="/media/live-9dbaeeb73a8053b0/banner_sm_right_events.jpg"
         icon={<Trophy size={28} />}
       />
 
