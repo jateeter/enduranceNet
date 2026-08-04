@@ -48,7 +48,7 @@ export default function CommunityArchivePage() {
       <LegacySectionHeader
         title="Community Archive"
         subtitle="Read-only migration surface for advertisers, classifieds, and Ridecamp community archives."
-        banner="/images/banner_sm_right_classified.jpg"
+        banner="/media/live-2def95ecb7616872/banner_sm_right_classified.jpg"
         icon={<MessageSquareText size={28} />}
       />
 

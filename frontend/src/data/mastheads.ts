@@ -9,14 +9,19 @@ export type MastheadVariant = {
   accentColor: string;
 };
 
-const GENERATED_MASTHEAD_IMAGE = '/media/site/masthead-background-v1.jpg';
+// Live legacy masthead and event banner assets staged by scripts/live_masthead_crawler.py.
+const LIVE_NEWS_MASTHEAD = '/media/live-92af7d5218e4bd86/banner_sm_right_newsblogs.jpg';
+const LIVE_EVENTS_MASTHEAD = '/media/live-9dbaeeb73a8053b0/banner_sm_right_events.jpg';
+const LIVE_MARKET_MASTHEAD = '/media/live-2d6103e14a9f1541/banner_sm_right_market.jpg';
+const LIVE_LEARN_MASTHEAD = '/media/live-a25cf78837f4a147/banner_sm_right_learn.jpg';
+const LIVE_TEVIS_2026_MASTHEAD = '/media/live-12da323153a36982/banner_block.jpg';
 
 const HOME_MASTHEAD: MastheadVariant = {
   id: 'home',
   kind: 'home',
   title: 'Endurance.Net',
   subtitle: 'News,Blogs',
-  imageUrl: GENERATED_MASTHEAD_IMAGE,
+  imageUrl: LIVE_NEWS_MASTHEAD,
   accentColor: '#a86e16',
 };
 
@@ -25,7 +30,7 @@ const FALLBACK_MASTHEAD: MastheadVariant = {
   kind: 'fallback',
   title: 'Endurance.Net',
   subtitle: 'Archive',
-  imageUrl: GENERATED_MASTHEAD_IMAGE,
+  imageUrl: LIVE_NEWS_MASTHEAD,
   accentColor: '#70460c',
 };
 
@@ -34,7 +39,7 @@ const TEVIS_2026_MASTHEAD: MastheadVariant = {
   kind: 'event',
   title: '2026 Tevis Cup',
   subtitle: 'Event Coverage',
-  imageUrl: GENERATED_MASTHEAD_IMAGE,
+  imageUrl: LIVE_TEVIS_2026_MASTHEAD,
   accentColor: '#6f1d1b',
 };
 
@@ -44,7 +49,7 @@ const SECTION_MASTHEADS = {
     kind: 'section',
     title: 'Endurance.Net',
     subtitle: 'News,Blogs',
-    imageUrl: GENERATED_MASTHEAD_IMAGE,
+    imageUrl: LIVE_NEWS_MASTHEAD,
     accentColor: '#12346f',
   },
   featured: {
@@ -52,7 +57,7 @@ const SECTION_MASTHEADS = {
     kind: 'section',
     title: 'Endurance.Net',
     subtitle: 'Story Archive',
-    imageUrl: GENERATED_MASTHEAD_IMAGE,
+    imageUrl: LIVE_NEWS_MASTHEAD,
     accentColor: '#7a1616',
   },
   events: {
@@ -60,7 +65,7 @@ const SECTION_MASTHEADS = {
     kind: 'section',
     title: 'Endurance.Net',
     subtitle: 'Events',
-    imageUrl: GENERATED_MASTHEAD_IMAGE,
+    imageUrl: LIVE_EVENTS_MASTHEAD,
     accentColor: '#9a6313',
   },
   results: {
@@ -68,7 +73,7 @@ const SECTION_MASTHEADS = {
     kind: 'section',
     title: 'Endurance.Net',
     subtitle: 'Results',
-    imageUrl: GENERATED_MASTHEAD_IMAGE,
+    imageUrl: LIVE_EVENTS_MASTHEAD,
     accentColor: '#5d6f22',
   },
   galleries: {
@@ -76,7 +81,7 @@ const SECTION_MASTHEADS = {
     kind: 'section',
     title: 'Endurance.Net',
     subtitle: 'Photo Galleries',
-    imageUrl: GENERATED_MASTHEAD_IMAGE,
+    imageUrl: LIVE_EVENTS_MASTHEAD,
     accentColor: '#7c4f13',
   },
   streams: {
@@ -84,7 +89,7 @@ const SECTION_MASTHEADS = {
     kind: 'section',
     title: 'Endurance.Net',
     subtitle: 'Streams',
-    imageUrl: GENERATED_MASTHEAD_IMAGE,
+    imageUrl: LIVE_NEWS_MASTHEAD,
     accentColor: '#355f7a',
   },
   community: {
@@ -92,7 +97,7 @@ const SECTION_MASTHEADS = {
     kind: 'section',
     title: 'Endurance.Net',
     subtitle: 'Community',
-    imageUrl: GENERATED_MASTHEAD_IMAGE,
+    imageUrl: LIVE_MARKET_MASTHEAD,
     accentColor: '#8a4b16',
   },
   learn: {
@@ -100,7 +105,7 @@ const SECTION_MASTHEADS = {
     kind: 'section',
     title: 'Endurance.Net',
     subtitle: 'Learn,AERC',
-    imageUrl: GENERATED_MASTHEAD_IMAGE,
+    imageUrl: LIVE_LEARN_MASTHEAD,
     accentColor: '#215f46',
   },
 } satisfies Record<string, MastheadVariant>;

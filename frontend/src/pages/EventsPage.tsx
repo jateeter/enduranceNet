@@ -37,7 +37,7 @@ export default function EventsPage() {
       <LegacySectionHeader
         title="Endurance Events"
         subtitle="Browse endurance riding coverage, international championships, ride-series pages, results, and gallery archives."
-        banner="/images/banner_sm_right_events.jpg"
+        banner="/media/live-9dbaeeb73a8053b0/banner_sm_right_events.jpg"
         icon={<Calendar size={28} />}
       />
 

@@ -4,6 +4,7 @@ import { fetchEvent, fetchEventMicrosite, fetchResultsByEvent } from '../api/end
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 import { legacyAssetUrl } from '../utils/legacyAssets';
+import { liveEventBannerUrl } from '../data/liveEventBanners';
 import { AlertTriangle, ArrowLeft, BookOpen, Calendar, Camera, ExternalLink, FileText, Image, Images, MapPin, Trophy } from 'lucide-react';
 
 interface Props {
@@ -17,11 +18,8 @@ export default function EventDetailPage({ eventId }: Props) {
   const { data: microsite } = useApi(() => fetchEventMicrosite(resolvedEventId).catch(() => null));
   const { data: results } = useApi(() => fetchResultsByEvent(resolvedEventId));
   const legacyHub = event?.registrationUrl?.endsWith('/') ? `${event.registrationUrl}index.html` : event?.registrationUrl;
-  const bannerUrl = microsite?.heroImageUrl
-    ? legacyAssetUrl(microsite.heroImageUrl)
-    : event?.registrationUrl?.endsWith('/')
-    ? legacyAssetUrl(`${event.registrationUrl}banner_block.jpg`)
-    : undefined;
+  const cmsBannerUrl = liveEventBannerUrl(event?.registrationUrl);
+  const bannerUrl = cmsBannerUrl ?? (microsite?.heroImageUrl ? legacyAssetUrl(microsite.heroImageUrl) : undefined);
   const pageTitle = microsite?.title ?? event?.name;
   const pageSubtitle = microsite?.subtitle ?? event?.eventType;
 
@@ -139,11 +137,13 @@ export default function EventDetailPage({ eventId }: Props) {
                   <p>{event.registrationUrl}</p>
                 </a>
               )}
-              <a href={legacyAssetUrl(`${event.registrationUrl}banner_block.jpg`)} target="_blank" rel="noopener noreferrer" className="info-block event-link-block">
-                <Image size={18} />
-                <span>Banner media</span>
-                <p>Resolved through /legacy-media/</p>
-              </a>
+              {cmsBannerUrl && (
+                <a href={cmsBannerUrl} target="_blank" rel="noopener noreferrer" className="info-block event-link-block">
+                  <Image size={18} />
+                  <span>Banner media</span>
+                  <p>Resolved through /media/ CMS storage</p>
+                </a>
+              )}
               <a href="/results" className="info-block event-link-block">
                 <Trophy size={18} />
                 <span>Results archive</span>

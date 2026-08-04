@@ -15,7 +15,7 @@ export default function NewsPage() {
       <LegacySectionHeader
         title="Current News"
         subtitle="The weekly Endurance.Net digest: ride coverage, international updates, galleries, and community notes."
-        banner="/images/banner_sm_right_newsblogs.jpg"
+        banner="/media/live-92af7d5218e4bd86/banner_sm_right_newsblogs.jpg"
         icon={<Newspaper size={28} />}
       />
 

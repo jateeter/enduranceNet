@@ -9,7 +9,7 @@ interface Props {
   icon: ReactNode;
 }
 
-export default function LegacySectionHeader({ title, subtitle, banner, brandImage = '/images/ENbanner_sm_left.jpg', icon }: Props) {
+export default function LegacySectionHeader({ title, subtitle, banner, brandImage = '/media/live-cf294789dc0376bf/ENbanner_sm_left.jpg', icon }: Props) {
   const hideBrokenImage = (event: SyntheticEvent<HTMLImageElement>) => {
     event.currentTarget.hidden = true;
   };

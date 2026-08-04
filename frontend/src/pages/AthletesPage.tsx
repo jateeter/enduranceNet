@@ -14,7 +14,7 @@ export default function AthletesPage() {
       <LegacySectionHeader
         title="Ridecamp"
         subtitle="Community archive migration for legacy Ridecamp people, horses, message history, and shared knowledge."
-        banner="/images/banner_sm_right_ridecamp.jpg"
+        banner="/media/live-6c69fb820d2b2b76/banner_sm_right_ridecamp.jpg"
         icon={<MessageSquareText size={28} />}
       />
 
